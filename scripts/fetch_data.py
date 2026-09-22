@@ -7,7 +7,7 @@ GitHub Actions에서 실행됩니다.
 import os
 import json
 import requests
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 # ── 설정 ──────────────────────────────────────────────────────────────────────
 API_KEY        = os.environ["SHEETS_API_KEY"]
@@ -114,7 +114,8 @@ def main():
     books = parse_rows(rows)
     print(f"✅ {len(books)}권 파싱 완료")
 
-    now_kst = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M KST")
+    kst = timezone(timedelta(hours=9))
+    now_kst = datetime.now(kst).strftime("%Y-%m-%d %H:%M KST")
     output  = {
         "updated_at": now_kst,
         "count":      len(books),
