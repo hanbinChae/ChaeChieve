@@ -2153,6 +2153,13 @@ function starsHtml(r) {
   return s;
 }
 
+function parseBookDate(d) {
+  if (!d) return 0;
+  const m = String(d).match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+  if (!m) return 0;
+  return new Date(+m[1], +m[2] - 1, +m[3]).getTime();
+}
+
 function sortTable(key) {
   if (sortKey === key) sortAsc = !sortAsc; else { sortKey = key; sortAsc = key!=='rating'; }
   ['date','title','rating'].forEach(k => { const el=document.getElementById('sort-'+k); if(el) el.textContent = k===sortKey?(sortAsc?'↑':'↓'):'↕'; });
@@ -2163,6 +2170,10 @@ function renderTable() {
   let data = getFiltered();
   data.sort((a,b)=>{
     if (sortKey==='rating') return sortAsc ? a.rating-b.rating : b.rating-a.rating;
+    if (sortKey==='date') {
+      const at = parseBookDate(a.date), bt = parseBookDate(b.date);
+      if (at !== bt) return sortAsc ? at - bt : bt - at;
+    }
     const av=String(a[sortKey]||''), bv=String(b[sortKey]||'');
     return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
   });
