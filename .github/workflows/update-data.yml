@@ -5,6 +5,10 @@ on:
     - cron: '0 15 * * *'   # 매일 자정 KST (UTC 15:00)
   workflow_dispatch:         # 수동 트리거 버튼
 
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
 jobs:
   fetch-and-commit:
     runs-on: ubuntu-latest
@@ -14,6 +18,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
