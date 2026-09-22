@@ -1,0 +1,2260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>채카이브 독서 대시보드</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;600&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #f5f0e8;
+      --card:     #faf7f2;
+      --border:   #ddd5c0;
+      --text:     #2c2416;
+      --muted:    #7a6e5f;
+      --teal:     #4a7c6f;
+      --teal2:    #6aab9a;
+      --orange:   #c8693a;
+      --gold:     #b8962e;
+      --olive:    #7a8c4e;
+      --cream:    #e8e0d0;
+      --radius:   10px;
+      --shadow:   0 2px 16px rgba(44,36,22,.08);
+    }
+
+    body {
+      font-family: 'Noto Sans KR', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── 로딩 ── */
+    #loading-overlay {
+      position: fixed; inset: 0;
+      background: rgba(245,240,232,.95);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200; flex-direction: column; gap: 16px;
+    }
+    .spinner {
+      width: 44px; height: 44px;
+      border: 3px solid var(--border);
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading-overlay p { color: var(--muted); font-size: .9rem; }
+
+    /* ── 헤더 ── */
+    .dash-header {
+      text-align: center;
+      padding: 52px 24px 32px;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+    }
+    .dash-header .eyebrow {
+      font-size: .78rem;
+      color: var(--muted);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .dash-header h1 {
+      font-family: 'Playfair Display', 'Noto Serif KR', serif;
+      font-size: clamp(2.2rem, 6vw, 3.8rem);
+      font-weight: 900;
+      color: var(--text);
+      line-height: 1.1;
+      letter-spacing: -.01em;
+    }
+    .dash-header h1 em { color: var(--teal); font-style: normal; }
+    .dash-header .meta {
+      margin-top: 10px;
+      font-size: .82rem;
+      color: var(--muted);
+    }
+    .dash-header .meta a {
+      color: var(--teal);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    #status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 14px;
+      padding: 4px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      font-size: .76rem;
+      color: var(--muted);
+      background: var(--bg);
+    }
+    #status-badge .dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--muted);
+    }
+    #status-badge.ok .dot { background: var(--teal2); }
+    #status-badge.error .dot { background: var(--orange); }
+    #status-badge.loading .dot { background: var(--gold); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ── 레이아웃 ── */
+    .dash-body { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* ── KPI ── */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 40px;
+      background: var(--card);
+    }
+    .kpi-item {
+      padding: 28px 20px 24px;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .kpi-item:last-child { border-right: none; }
+    .kpi-icon { font-size: 1.8rem; margin-bottom: 10px; opacity: .75; }
+    .kpi-value {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: var(--teal);
+      line-height: 1;
+    }
+    .kpi-label { font-size: .75rem; color: var(--muted); margin-top: 6px; letter-spacing: .05em; text-transform: uppercase; }
+
+    @media (max-width: 600px) {
+      .kpi-row { grid-template-columns: repeat(2,1fr); }
+      .kpi-item:nth-child(2) { border-right: none; }
+      .kpi-item:nth-child(1), .kpi-item:nth-child(2) { border-bottom: 1px solid var(--border); }
+    }
+
+    /* ── 섹션 공통 ── */
+    .section { margin-bottom: 40px; }
+    .section-title {
+      font-family: 'Playfair Display', 'Noto Serif KR', serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--teal);
+      display: inline-block;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    /* ── 연도 필터 ── */
+    .year-filter {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; align-items: center;
+    }
+    .year-filter .flabel { font-size: .76rem; color: var(--muted); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-right: 4px; }
+    .ybtn {
+      padding: 5px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      font-size: .78rem;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .15s;
+    }
+    .ybtn:hover { border-color: var(--teal); color: var(--teal); }
+    .ybtn.active { background: var(--teal); color: #fff; border-color: var(--teal); }
+
+    /* ── 랭킹 섹션 연도 피커 ── */
+    .ranking-year-filter {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+      margin-bottom: -24px; /* two-col 섹션과 간격 조정 */
+    }
+    .ranking-year-filter .flabel {
+      font-size: .76rem; color: var(--muted); font-weight: 600;
+      letter-spacing: .06em; text-transform: uppercase; margin-right: 4px;
+    }
+
+    /* ── 타임라인 ── */
+    .timeline-wrap {
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+    #timeline-svg { display: block; min-width: 700px; }
+
+    /* ── 2열 그리드 ── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
+    .two-col > div { display: flex; flex-direction: column; }
+    .two-col > div .card { flex: 1; }
+    @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+
+    .chart-wrap { position: relative; }
+    .chart-wrap.h240 { height: 240px; }
+    .chart-wrap.h280 { height: 280px; }
+    .chart-wrap.h320 { height: 320px; }
+
+    /* ── 선버스트 + 레이더 높이 동기화 ── */
+    .sunburst-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .sunburst-card canvas {
+      width: 100% !important;
+      max-width: 480px;
+      height: auto !important;
+      aspect-ratio: 1;
+      flex: 1 1 auto;
+    }
+    .radar-card {
+      display: flex;
+      flex-direction: column;
+    }
+    .radar-card .chart-wrap {
+      flex: 1 1 0;
+      min-height: 280px;
+    }
+    .card-title {
+      font-size: .72rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .08em; margin-bottom: 14px;
+    }
+
+
+    /* ── My Love & Hate — Diverging Bar ── */
+    @keyframes dvBarGrow {
+      from { width: 0 !important; }
+      to   { width: var(--dv-w); }
+    }
+
+    .diverging-list {
+      list-style: none;
+      overflow: hidden;
+      position: relative;
+      padding: 4px 0;
+    }
+    /* 중앙 dashed 세로축 */
+    .diverging-list::before {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      left: 50%;
+      width: 0;
+      border-left: 1.5px dashed var(--border);
+      pointer-events: none;
+    }
+
+    /* 각 행: 정확히 50/50 */
+    .dv-item {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      min-height: 32px;
+      cursor: default;
+    }
+
+    /* ── 왼쪽 셀 ── */
+    .dv-left {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end; /* 내용물을 중앙축 쪽으로 붙임 */
+      gap: 6px;
+      padding-right: 10px;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    /* ── 오른쪽 셀 ── */
+    .dv-right {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start; /* 내용물을 중앙축 쪽으로 붙임 */
+      gap: 6px;
+      padding-left: 10px;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    /* 제목 */
+    .dv-title {
+      font-size: .75rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text);
+      flex: 1 1 0;
+      min-width: 0;
+      transition: font-weight .1s;
+    }
+    .dv-left  .dv-title { text-align: right; }
+    .dv-right .dv-title { text-align: left; }
+
+    /* 선택(고정)된 행 */
+    .dv-item.locked .dv-title {
+      font-weight: 700;
+      text-decoration: underline;
+      text-decoration-color: var(--gold);
+      text-underline-offset: 3px;
+      text-decoration-thickness: 2px;
+    }
+    .dv-item.locked {
+      background: rgba(184,150,46,.05);
+      border-radius: 4px;
+    }
+
+    /* 편차값 */
+    .dv-val {
+      font-size: .7rem;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .dv-val.pos { color: var(--teal); }
+    .dv-val.neg { color: var(--orange); }
+
+    /* 막대 */
+    .dv-bar {
+      height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      width: var(--dv-w);
+      animation: dvBarGrow .5s ease-out both;
+    }
+    .dv-bar.pos { background: var(--teal); }
+    .dv-bar.neg { background: var(--orange); }
+
+    /* 부정 행: 막대가 오른쪽(축)에서 왼쪽으로 뻗도록 row-reverse */
+    .dv-left.neg-cell {
+      flex-direction: row-reverse;
+    }
+
+    /* 커스텀 툴팁 (플로팅) */
+    #dv-tip {
+      position: fixed; display: none;
+      background: rgba(44,36,22,.93); color: #faf7f2;
+      font-size: 11.5px; line-height: 1.6;
+      padding: 8px 13px; border-radius: 9px;
+      pointer-events: none; z-index: 999;
+      box-shadow: 0 4px 14px rgba(0,0,0,.22);
+      max-width: 240px;
+      white-space: pre-line;
+    }
+
+    /* ── Inspector Panel ── */
+    #inspector-panel {
+      height: 150px;
+      margin-top: 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 20px;
+      overflow: hidden;
+      position: relative;
+    }
+    /* 안내 문구 / 상세 정보 공통 레이어 */
+    .insp-layer {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 20px;
+      transition: opacity .3s ease;
+      pointer-events: none;
+    }
+    .insp-hint {
+      font-size: .8rem;
+      color: var(--muted);
+      text-align: center;
+      letter-spacing: .02em;
+    }
+    .insp-detail {
+      opacity: 0;
+      width: 100%;
+    }
+    .insp-detail-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      width: 100%;
+    }
+    .insp-book-title {
+      font-family: 'Noto Serif KR', serif;
+      font-size: .92rem;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .insp-author {
+      font-size: .75rem;
+      color: var(--muted);
+    }
+    .insp-date {
+      font-size: .72rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .insp-date::before {
+      content: '✓';
+      font-size: .68rem;
+      color: var(--teal);
+      font-weight: 700;
+    }
+    .insp-scores {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .8rem;
+      flex-wrap: wrap;
+      margin-top: 2px;
+    }
+    .insp-avg   { color: var(--muted); }
+    .insp-arrow { color: var(--muted); font-size: .85rem; }
+    .insp-mine  { font-weight: 700; }
+    .insp-mine.pos { color: var(--teal); }
+    .insp-mine.neg { color: var(--orange); }
+    .insp-diff {
+      font-size: .72rem; font-weight: 700;
+      padding: 2px 7px; border-radius: 999px;
+    }
+    .insp-diff.pos { background: #4a7c6f22; color: var(--teal); }
+    .insp-diff.neg { background: #c8693a22; color: var(--orange); }
+
+    /* 메모 미리보기 */
+    .insp-memo-preview {
+      font-size: .73rem;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-top: 5px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      cursor: pointer;
+      border-left: 2px solid var(--border);
+      padding-left: 8px;
+      transition: border-color .15s, color .15s;
+    }
+    .insp-memo-preview:hover {
+      border-color: var(--teal);
+      color: var(--text);
+    }
+    .insp-memo-preview.empty {
+      font-style: italic;
+      cursor: default;
+      border-color: transparent;
+    }
+
+    /* ── 도서 목록 테이블 ── */
+    .search-row {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center;
+    }
+    .search-row input, .search-row select {
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: .8rem;
+      outline: none;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+    }
+    .search-row input { flex: 1; min-width: 160px; }
+    .search-row input:focus, .search-row select:focus { border-color: var(--teal); }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    thead th {
+      text-align: left; padding: 9px 10px;
+      border-bottom: 2px solid var(--border);
+      color: var(--muted); font-weight: 700;
+      font-size: .72rem; text-transform: uppercase; letter-spacing: .05em;
+      white-space: nowrap; cursor: pointer; user-select: none;
+    }
+    thead th:hover { color: var(--teal); }
+    tbody tr { border-bottom: 1px solid var(--cream); }
+    tbody tr:hover { background: var(--cream); }
+    tbody td { padding: 8px 10px; vertical-align: middle; }
+
+    .badge {
+      display: inline-block; padding: 2px 8px;
+      border-radius: 999px; font-size: .7rem; font-weight: 600;
+    }
+    .badge-teal   { background: rgba(74,124,111,.12); color: var(--teal); }
+    .badge-orange { background: rgba(200,105,58,.12);  color: var(--orange); }
+    .badge-gold   { background: rgba(184,150,46,.12);  color: var(--gold); }
+    .badge-olive  { background: rgba(122,140,78,.12);  color: var(--olive); }
+    .badge-muted  { background: var(--cream); color: var(--muted); }
+
+    .star-fill { color: var(--gold); }
+    .star-empty { color: var(--border); }
+
+    .page-info { font-size: .76rem; color: var(--muted); margin-top: 12px; }
+    .pagination { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+    .page-btn {
+      padding: 4px 10px; border: 1px solid var(--border);
+      border-radius: 6px; font-size: .74rem; cursor: pointer;
+      background: transparent; color: var(--muted); font-family: inherit;
+    }
+    .page-btn.active { background: var(--teal); color: #fff; border-color: var(--teal); }
+    .page-btn:hover:not(.active) { border-color: var(--teal); color: var(--teal); }
+
+    /* ── Top Books ── */
+    .top-list { list-style: none; }
+    .top-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 9px 0; border-bottom: 1px solid var(--cream);
+    }
+    .top-item:last-child { border-bottom: none; }
+    .top-rank { font-size: .72rem; font-weight: 800; color: var(--muted); min-width: 18px; padding-top: 2px; }
+    .top-rank.r1 { color: var(--gold); }
+    .top-rank.r2 { color: #94a3b8; }
+    .top-rank.r3 { color: #b45309; }
+    .top-title { font-size: .82rem; font-weight: 600; line-height: 1.3; }
+    .top-author { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+    .top-rating { margin-left: auto; font-size: .8rem; font-weight: 700; color: var(--gold); white-space: nowrap; }
+
+    /* ── 아크 다이어그램 ── */
+    #arc-svg { display: block; width: 100%; overflow: visible; }
+
+    /* ── 메모 아이콘 ── */
+    .memo-btn {
+      background: none; border: none; cursor: pointer;
+      font-size: 1rem; padding: 2px 4px; border-radius: 4px;
+      opacity: .6; transition: opacity .15s, background .15s;
+      line-height: 1;
+    }
+    .memo-btn:hover { opacity: 1; background: var(--cream); }
+
+    /* ── 메모 모달 ── */
+    #memo-modal {
+      position: fixed; inset: 0; z-index: 300;
+      display: flex; align-items: flex-end; justify-content: center;
+      background: rgba(44,36,22,.45);
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s ease;
+    }
+    #memo-modal.open {
+      opacity: 1; pointer-events: all;
+    }
+    #memo-panel {
+      background: var(--card);
+      border-radius: 18px 18px 0 0;
+      width: 100%; max-width: 680px;
+      max-height: 75vh;
+      padding: 28px 32px 40px;
+      overflow-y: auto;
+      transform: translateY(32px);
+      transition: transform .28s ease;
+      box-shadow: 0 -4px 32px rgba(44,36,22,.14);
+    }
+    #memo-modal.open #memo-panel { transform: translateY(0); }
+    .memo-panel-header {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 12px;
+      margin-bottom: 6px;
+    }
+    .memo-panel-title {
+      font-family: 'Noto Serif KR', serif;
+      font-size: 1.05rem; font-weight: 700;
+      color: var(--text); line-height: 1.4;
+    }
+    .memo-panel-author {
+      font-size: .78rem; color: var(--muted); margin-bottom: 18px;
+    }
+    .memo-close {
+      background: var(--cream); border: none; cursor: pointer;
+      width: 28px; height: 28px; border-radius: 50%;
+      font-size: 1rem; color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: background .15s;
+    }
+    .memo-close:hover { background: var(--border); }
+    .memo-divider {
+      border: none; border-top: 1px solid var(--border);
+      margin: 0 0 16px;
+    }
+    .memo-body {
+      font-size: .875rem; line-height: 1.85;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    /* 메모 없을 때 */
+    .memo-empty {
+      font-size: .85rem; color: var(--muted);
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+<!-- 메모 모달 -->
+<div id="memo-modal" role="dialog" aria-modal="true" aria-labelledby="memo-panel-title-el">
+  <div id="memo-panel">
+    <div class="memo-panel-header">
+      <div>
+        <div class="memo-panel-title" id="memo-panel-title-el"></div>
+        <div class="memo-panel-author" id="memo-panel-author-el"></div>
+      </div>
+      <button class="memo-close" id="memo-close-btn" aria-label="닫기">✕</button>
+    </div>
+    <hr class="memo-divider">
+    <div class="memo-body" id="memo-panel-body"></div>
+  </div>
+</div>
+
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <p>채카이브 데이터를 불러오는 중…</p>
+</div>
+
+<!-- 헤더 -->
+<div class="dash-header">
+  <div class="eyebrow">Reading Archive</div>
+  <h1>채<em>카</em>이브 독서 기록</h1>
+  <div class="meta">HanbinChae's Personal Reading Archive &nbsp;|&nbsp; Data from Personal Google Sheets</div>
+  <div id="status-badge" class="loading">
+    <span class="dot"></span>
+    <span id="status-text">로딩 중…</span>
+  </div>
+</div>
+
+<div class="dash-body">
+
+  <!-- 연도 필터 -->
+  <div class="year-filter">
+    <span class="flabel">Year</span>
+    <button class="ybtn active" data-year="all">All</button>
+  </div>
+
+  <!-- KPI -->
+  <div class="kpi-row">
+    <div class="kpi-item">
+      <div class="kpi-icon">📚</div>
+      <div class="kpi-value" id="kpi-total">—</div>
+      <div class="kpi-label">Books Read</div>
+    </div>
+    <div class="kpi-item">
+      <div class="kpi-icon">✍️</div>
+      <div class="kpi-value" id="kpi-authors">—</div>
+      <div class="kpi-label">Authors</div>
+    </div>
+    <div class="kpi-item">
+      <div class="kpi-icon">🏷️</div>
+      <div class="kpi-value" id="kpi-genres">—</div>
+      <div class="kpi-label">Genres</div>
+    </div>
+    <div class="kpi-item">
+      <div class="kpi-icon">⭐</div>
+      <div class="kpi-value" id="kpi-avg">—</div>
+      <div class="kpi-label">Avg Rating</div>
+    </div>
+  </div>
+
+  <!-- 도서 목록 -->
+  <div class="section">
+    <div class="section-title">All Books</div>
+    <div class="card">
+      <div class="search-row">
+        <input type="text" id="search-input" placeholder="제목 / 저자 검색…" />
+        <select id="filter-major"><option value="">모든 주류</option></select>
+        <select id="filter-medium"><option value="">모든 매체</option></select>
+        <select id="filter-status">
+          <option value="O">완독</option>
+          <option value="X">미완독</option>
+          <option value="">전체</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortTable('date')">완독일 <span id="sort-date">↕</span></th>
+              <th onclick="sortTable('title')">제목 <span id="sort-title">↕</span></th>
+              <th>저자</th>
+              <th onclick="sortTable('major')">주류</th>
+              <th>매체</th>
+              <th onclick="sortTable('rating')">평점 <span id="sort-rating">↕</span></th>
+              <th style="width:36px;text-align:center;">메모</th>
+            </tr>
+          </thead>
+          <tbody id="book-table-body"></tbody>
+        </table>
+      </div>
+      <div class="page-info" id="page-info"></div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </div>
+
+  <!-- Reading Timeline -->
+  <div class="section">
+    <div class="section-title">Reading Timeline</div>
+    <div class="card">
+      <div class="timeline-wrap">
+        <svg id="timeline-svg" height="80"
+             role="img"
+             aria-label="연도별 월간 독서 타임라인 — 전자책/종이책 완독 날짜 분포"></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- 매체 → 주류 아크 + 레이더 차트 -->
+  <div class="section two-col">
+    <div>
+      <div class="section-title">How Books Consumed</div>
+      <div class="card sunburst-card">
+        <canvas id="arc-canvas" width="600" height="600" style="cursor:pointer;"
+                role="img"
+                aria-label="매체별 · 주류별 독서 비율 선버스트 차트 — 조각 클릭 시 세부 장르 확대"></canvas>
+        <div id="arc-hint" style="font-size:.8rem;color:var(--muted);margin-top:12px;letter-spacing:.03em;">주류 조각을 클릭하면 강목으로 확대됩니다</div>
+      </div>
+    </div>
+    <div>
+      <div class="section-title">Reading Spectrum</div>
+      <div class="card radar-card">
+        <div class="chart-wrap"><canvas id="chart-genre-radar"
+             role="img"
+             aria-label="장르별 독서량 및 평균 평점 레이더 차트"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 평점 도넛 + 연도별 막대 -->
+  <div class="section two-col">
+    <div>
+      <div class="section-title">Star Distribution</div>
+      <div class="card">
+        <div class="chart-wrap h240"><canvas id="chart-rating"
+             role="img"
+             aria-label="별점 분포 폴라 에어리어 차트 — 1점부터 5점까지 평점별 권수"></canvas></div>
+      </div>
+    </div>
+    <div>
+      <div class="section-title">Books per Year</div>
+      <div class="card">
+        <div class="chart-wrap h240"><canvas id="chart-year"
+             role="img"
+             aria-label="연도별 완독 권수 에어리어 차트"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- My Best & Worst + Top 10 -->
+  <div class="section">
+    <!-- 연도 피커 -->
+    <div class="ranking-year-filter" id="ranking-year-filter"></div>
+  </div>
+  <div class="section two-col">
+    <div>
+      <div class="section-title" id="best-worst-title"></div>
+      <div class="card">
+        <ul class="diverging-list" id="rating-compare"></ul>
+        <div id="inspector-panel">
+          <div class="insp-layer insp-hint-layer">
+            <span class="insp-hint">차트의 막대를 호버하여 상세 정보를 확인하세요</span>
+          </div>
+          <div class="insp-layer insp-detail">
+            <div class="insp-detail-inner">
+              <div class="insp-book-title" id="insp-title"></div>
+              <div class="insp-author" id="insp-author"></div>
+              <div class="insp-date"   id="insp-date"></div>
+              <div class="insp-scores">
+                <span class="insp-avg"   id="insp-avg"></span>
+                <span class="insp-arrow">→</span>
+                <span class="insp-mine"  id="insp-mine"></span>
+                <span class="insp-diff"  id="insp-diff"></span>
+              </div>
+              <div class="insp-memo-preview" id="insp-memo-preview"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="section-title" id="best-books-title"></div>
+      <div class="card">
+        <ul class="top-list" id="top-books"></ul>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end dash-body -->
+
+<script>
+// ── 설정 ──────────────────────────────────────────────────────────────────────
+const DATA_URL  = './data.json';   // GitHub Actions 자동 갱신 (hanbinChae/ChaeChieve)
+const CACHE_KEY = 'reading_dashboard_cache_v6';
+const CACHE_TTL = 60 * 60 * 1000;
+
+// ── 상태 ──────────────────────────────────────────────────────────────────────
+let allBooks = [];
+let sortKey = 'date', sortAsc = false;
+let currentPage = 1;
+const PAGE_SIZE = 20;
+let activeYear = 'all';
+const charts = {};
+
+// ── 색상 팔레트 ───────────────────────────────────────────────────────────────
+const TEAL   = '#4a7c6f';
+const ORANGE = '#c8693a';
+const GOLD   = '#b8962e';
+const OLIVE  = '#7a8c4e';
+const MUTED  = '#7a6e5f';
+const PALETTE = [TEAL, ORANGE, GOLD, OLIVE, '#8b6914', '#5d8a9e', '#9e6b5d', '#6b7c4a'];
+
+// ── 데이터 로드 (data.json — GitHub Actions 자동 갱신) ───────────────────────
+async function loadData(forceRefresh = false) {
+  if (!forceRefresh) {
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { ts, data } = JSON.parse(cached);
+        if (Date.now() - ts < CACHE_TTL) {
+          allBooks = data;
+          const age = Math.round((Date.now() - ts) / 60000);
+          setStatus('ok', `캐시 · ${allBooks.filter(b=>b.status==='O').length}권 (${age}분 전 갱신) · <a href="#" onclick="event.preventDefault();loadData(true)" style="color:var(--teal)">새로고침</a>`);
+          document.getElementById('loading-overlay').style.display = 'none';
+          buildYearFilters(); renderAll(); return;
+        }
+      }
+    } catch(_) {}
+  }
+
+  setStatus('loading', '데이터를 불러오는 중…');
+  try {
+    const res  = await fetch(DATA_URL + '?v=' + Date.now());  // 브라우저 캐시 우회
+    if (!res.ok) throw new Error('data.json 로드 실패 (HTTP ' + res.status + ')');
+    const json = await res.json();
+    if (!Array.isArray(json.books)) throw new Error('데이터 형식 오류');
+
+    allBooks = json.books;
+    const updatedAt = json.updated_at || '';
+
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: allBooks })); } catch(_) {}
+    setStatus('ok', `${allBooks.filter(b=>b.status==='O').length}권 · 최종 갱신 ${updatedAt} · <a href="#" onclick="event.preventDefault();loadData(true)" style="color:var(--teal)">새로고침</a>`);
+    document.getElementById('loading-overlay').style.display = 'none';
+    buildYearFilters(); renderAll();
+  } catch(e) {
+    setStatus('error', '로드 실패: ' + e.message);
+    document.getElementById('loading-overlay').style.display = 'none';
+  }
+}
+
+function setStatus(cls, msg) {
+  const el = document.getElementById('status-badge');
+  el.className = cls;
+  document.getElementById('status-text').innerHTML = msg;
+}
+
+// ── 연도 필터 ─────────────────────────────────────────────────────────────────
+function buildYearFilters() {
+  const row = document.querySelector('.year-filter');
+  row.querySelectorAll('.ybtn:not([data-year="all"])').forEach(b => b.remove());
+  const years = [...new Set(allBooks.filter(b=>b.status==='O').map(b=>b.year))].filter(Boolean).sort();
+  years.forEach(y => {
+    const btn = document.createElement('button');
+    btn.className = 'ybtn'; btn.dataset.year = y; btn.textContent = y;
+    btn.onclick = () => setYear(y);
+    row.appendChild(btn);
+  });
+}
+function setYear(y) {
+  activeYear = y;
+  document.querySelectorAll('.ybtn').forEach(b => b.classList.toggle('active', b.dataset.year === y));
+  currentPage = 1; renderAll();
+}
+document.querySelector('.ybtn[data-year="all"]').onclick = () => setYear('all');
+
+// ── 데이터 헬퍼 ──────────────────────────────────────────────────────────────
+function getCompleted(year = 'all') {
+  return allBooks.filter(b => b.status === 'O' && (year === 'all' || b.year === year));
+}
+function getFiltered() {
+  const sf = document.getElementById('filter-status').value;
+  const mf = document.getElementById('filter-major').value;
+  const ef = document.getElementById('filter-medium').value;
+  const q  = document.getElementById('search-input').value.toLowerCase();
+  return allBooks.filter(b => {
+    if (sf && b.status !== sf) return false;
+    if (mf && b.major !== mf)  return false;
+    if (ef && b.medium !== ef) return false;
+    if (activeYear !== 'all' && b.year !== activeYear) return false;
+    if (q && !b.title.toLowerCase().includes(q) && !b.author.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+// ── 전체 렌더 ─────────────────────────────────────────────────────────────────
+function renderAll() {
+  const books = getCompleted(activeYear);
+  renderKPI(books);
+  renderTimeline(books);
+  renderArc(books);
+  renderGenreRadar(books);
+  renderRatingDonut(books);
+  renderYearBar();
+  buildRankingYearFilter();
+  renderTable();
+  populateFilters();
+}
+
+// ── 랭킹 연도 피커 빌드 & 렌더 ────────────────────────────────────────────────
+let rankingYear = String(new Date().getFullYear());
+
+function buildRankingYearFilter() {
+  const row = document.getElementById('ranking-year-filter');
+  if (!row) return;
+
+  // 사용 가능한 연도 목록 (완독 기준)
+  const years = [...new Set(
+    allBooks.filter(b => b.status === 'O').map(b => b.year)
+  )].filter(Boolean).sort();
+
+  // 현재 rankingYear 가 목록에 없으면 가장 최근 연도로 초기화
+  if (!years.includes(rankingYear)) rankingYear = years[years.length - 1] || rankingYear;
+
+  row.innerHTML =
+    `<span class="flabel">Ranking Year</span>` +
+    years.map(y =>
+      `<button class="ybtn${y === rankingYear ? ' active' : ''}"
+               onclick="setRankingYear('${y}')">${y}</button>`
+    ).join('');
+
+  renderRankingSections();
+}
+
+function setRankingYear(y) {
+  rankingYear = y;
+  document.querySelectorAll('#ranking-year-filter .ybtn')
+    .forEach(b => b.classList.toggle('active', b.textContent === y));
+  renderRankingSections();
+}
+
+function renderRankingSections() {
+  const books = getCompleted(rankingYear);
+  document.getElementById('best-worst-title').textContent  = `${rankingYear} My Best and Worst Books`;
+  document.getElementById('best-books-title').textContent  = `${rankingYear} Hanbin's Books Ranking`;
+  renderRatingCompare(books);
+  renderTopBooks(books);
+}
+
+// ── KPI ───────────────────────────────────────────────────────────────────────
+function renderKPI(books) {
+  const ratings = books.map(b=>b.rating).filter(r=>r>0);
+  const avg = ratings.length ? ratings.reduce((a,b)=>a+b,0)/ratings.length : 0;
+  document.getElementById('kpi-total').textContent   = books.length;
+  document.getElementById('kpi-authors').textContent = new Set(books.map(b=>b.author).filter(Boolean)).size;
+  document.getElementById('kpi-genres').textContent  = new Set(books.map(b=>b.major).filter(Boolean)).size;
+  document.getElementById('kpi-avg').textContent     = avg ? avg.toFixed(2) : '—';
+}
+
+// ── 타임라인 (SVG) ────────────────────────────────────────────────────────────
+function renderTimeline(books) {
+  const svg = document.getElementById('timeline-svg');
+  const W = svg.parentElement.clientWidth || 860;
+  svg.setAttribute('width', W);
+
+  const withDate = books.filter(b => b.year && b.date).map(b => {
+    const parts = b.date.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+    if (!parts) return null;
+    return { ...b, ts: new Date(+parts[1], +parts[2]-1, +parts[3]).getTime() };
+  }).filter(Boolean).sort((a,b) => a.ts - b.ts);
+
+  if (!withDate.length) { svg.innerHTML = ''; return; }
+
+  const minTs = withDate[0].ts, maxTs = withDate[withDate.length-1].ts;
+  const pad = 64, H = 360;
+  const laneY = { '전자책': 118, '종이책': 268 };
+  const laneColors = { '전자책': TEAL, '종이책': ORANGE };
+  const tsRange = maxTs - minTs || 1;
+  const toX = ts => pad + (ts - minTs) / tsRange * (W - pad * 2);
+
+  svg.setAttribute('height', H);
+  let html = '';
+
+  // ① 연도/월 눈금선 — 두 레인 사이에만
+  const startYear = new Date(minTs).getFullYear();
+  const endYear   = new Date(maxTs).getFullYear();
+  for (let y = startYear; y <= endYear; y++) {
+    for (let m = 0; m < 12; m++) {
+      const ts = new Date(y, m, 1).getTime();
+      if (ts < minTs || ts > maxTs) continue;
+      const x = toX(ts);
+      const isMajor = m === 0;
+      const lineTop    = laneY['전자책'] + 18;
+      const lineBottom = laneY['종이책'] - 18;
+      html += `<line x1="${x}" y1="${lineTop}" x2="${x}" y2="${lineBottom}"
+        stroke="#c8bfaa" stroke-width="${isMajor ? 1.4 : 0.6}" stroke-opacity="${isMajor ? 0.7 : 0.35}"/>`;
+      const labelY = (laneY['전자책'] + laneY['종이책']) / 2;
+      if (isMajor)
+        html += `<text x="${x}" y="${labelY + 5}" text-anchor="middle" font-size="12" fill="${MUTED}" font-weight="700">${y}</text>`;
+      else if (m % 3 === 0)
+        html += `<text x="${x}" y="${labelY + 5}" text-anchor="middle" font-size="10" fill="${MUTED}" opacity="0.55">${m+1}월</text>`;
+    }
+  }
+
+  // ② 레인 축선 + 레이블
+  ['전자책', '종이책'].forEach(med => {
+    const y = laneY[med];
+    const col = laneColors[med];
+    html += `<line x1="${pad}" y1="${y}" x2="${W - pad}" y2="${y}"
+      stroke="${col}" stroke-opacity="0.18" stroke-width="1.5" stroke-dasharray="4,4"/>`;
+    html += `<text x="${pad - 10}" y="${y + 5}" text-anchor="end"
+      font-size="13" font-weight="700" fill="${col}">${med}</text>`;
+  });
+
+  // ③ 책 점 — 겹침 방지 jitter
+  const placed = { '전자책': [], '종이책': [] };
+  const SPREAD = 18;
+  withDate.forEach(b => {
+    const med   = (b.medium === '전자책' || b.medium === '종이책') ? b.medium : '전자책';
+    const col   = laneColors[med];
+    const baseY = laneY[med];
+    const x     = toX(b.ts);
+    const r     = b.rating >= 4.5 ? 10 : b.rating >= 3.5 ? 7 : 6;
+
+    let cy = baseY, level = 0;
+    while (placed[med].some(p => Math.abs(p.x - x) < (r + p.r + 2) && Math.abs(p.cy - cy) < (r + p.r + 1))) {
+      level++;
+      cy = baseY + (level % 2 === 1 ? -1 : 1) * Math.ceil(level / 2) * SPREAD;
+    }
+    placed[med].push({ x, cy, r });
+
+    // data 속성으로 툴팁 정보 저장
+    const stars = '★'.repeat(Math.round(b.rating || 0)) + '☆'.repeat(5 - Math.round(b.rating || 0));
+    html += `<circle
+      cx="${x.toFixed(1)}" cy="${cy}" r="${r}"
+      fill="${col}" fill-opacity="0.82" stroke="white" stroke-width="1.5"
+      class="tl-dot"
+      style="cursor:pointer; transition: r .15s, fill-opacity .15s, stroke-width .15s;"
+      data-title="${b.title.replace(/"/g,'&quot;')}"
+      data-author="${(b.author||'').replace(/"/g,'&quot;')}"
+      data-date="${b.date}"
+      data-rating="${b.rating}"
+      data-stars="${stars}"
+      data-medium="${med}"
+      data-color="${col}"
+      data-memo="${(b.memo||'').replace(/"/g,'&quot;').replace(/\n/g,'&#10;')}"/>`;
+  });
+
+  svg.innerHTML = html;
+
+  // ④ 커스텀 툴팁 (SVG foreignObject 대신 HTML div 사용)
+  const wrap = svg.parentElement;
+  wrap.style.position = 'relative';
+
+  // 툴팁 엘리먼트 (재사용)
+  let tip = wrap.querySelector('.tl-tooltip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.className = 'tl-tooltip';
+    tip.style.cssText = `
+      position:absolute; display:none; pointer-events:none;
+      background:var(--card); color:var(--text);
+      border:1px solid var(--border);
+      font-size:12px; line-height:1.6; padding:10px 14px;
+      border-radius:10px; min-width:160px; max-width:220px;
+      box-shadow:0 6px 20px rgba(44,36,22,.14); z-index:50;
+      transition: opacity .12s ease;`;
+    wrap.appendChild(tip);
+  }
+
+  // SVG rect 캐싱 (resize 시 갱신)
+  let _tlRect = svg.getBoundingClientRect();
+  let _wrapRect = wrap.getBoundingClientRect();
+  const _refreshTlRect = () => {
+    _tlRect  = svg.getBoundingClientRect();
+    _wrapRect = wrap.getBoundingClientRect();
+  };
+  window.addEventListener('resize',  _refreshTlRect, { passive: true });
+  window.addEventListener('scroll', _refreshTlRect, { passive: true });
+
+  const allDots = svg.querySelectorAll('.tl-dot');
+  let lockedDot = null;   // 클릭으로 고정된 dot
+
+  function showDotTip(dot) {
+    const origR  = parseFloat(dot.getAttribute('r'));
+    const cx     = parseFloat(dot.getAttribute('cx'));
+    const cy     = parseFloat(dot.getAttribute('cy'));
+    const scaleX = _tlRect.width  / parseFloat(svg.getAttribute('width')  || W);
+    const scaleY = _tlRect.height / parseFloat(svg.getAttribute('height') || H);
+    let left = (_tlRect.left - _wrapRect.left) + cx * scaleX + origR + 10;
+    let top  = (_tlRect.top  - _wrapRect.top)  + cy * scaleY - 70;
+    if (left + 230 > _wrapRect.width) left -= 230;
+    top = Math.max(4, top);
+
+    const d = dot.dataset;
+    const hasMemo = d.memo && d.memo.trim();
+    tip.innerHTML = `
+      <div style="font-weight:700;font-size:.82rem;margin-bottom:2px;
+                  color:${d.color};font-family:'Noto Serif KR',serif;">
+        ${d.title}
+      </div>
+      <div style="font-size:.74rem;color:var(--muted);margin-bottom:6px;">${d.author}</div>
+      <div style="font-size:.78rem;color:var(--muted);">📅 ${d.date}</div>
+      <div style="margin-top:4px;font-size:.82rem;letter-spacing:.05em;color:${d.color};">
+        ${d.stars}
+        <span style="font-size:.72rem;color:var(--muted);margin-left:4px;">${d.rating ? d.rating + '점' : '—'}</span>
+      </div>
+      <div style="margin-top:4px;font-size:.7rem;
+                  padding:2px 7px;border-radius:999px;display:inline-block;
+                  background:${d.color}22;color:${d.color};font-weight:600;">
+        ${d.medium}
+      </div>
+      ${hasMemo ? `
+      <div style="margin-top:8px;padding-top:7px;border-top:1px solid var(--border);
+                  font-size:.7rem;color:var(--teal);font-weight:600;cursor:pointer;">
+        📝 클릭하여 메모 보기
+      </div>` : ''}`;
+    tip.style.display = 'block';
+    tip.style.left = left + 'px';
+    tip.style.top  = top  + 'px';
+  }
+
+  allDots.forEach(dot => {
+    const origR = parseFloat(dot.getAttribute('r'));
+
+    dot.addEventListener('mouseenter', () => {
+      if (lockedDot === dot) return;   // 이미 고정된 dot은 hover 무시
+      // 점 확대 + 강조
+      dot.setAttribute('r', origR + 4);
+      dot.setAttribute('fill-opacity', '1');
+      dot.setAttribute('stroke-width', '2.5');
+      allDots.forEach(d => { if (d !== dot && d !== lockedDot) d.setAttribute('fill-opacity', '0.22'); });
+      showDotTip(dot);
+    });
+
+    dot.addEventListener('mouseleave', () => {
+      if (lockedDot === dot) return;   // 고정된 dot은 mouseleave 무시
+      dot.setAttribute('r', origR);
+      dot.setAttribute('fill-opacity', lockedDot ? '0.22' : '0.82');
+      dot.setAttribute('stroke-width', '1.5');
+      if (!lockedDot) allDots.forEach(d => d.setAttribute('fill-opacity', '0.82'));
+      tip.style.display = 'none';
+    });
+
+    dot.addEventListener('click', e => {
+      e.stopPropagation();
+      const d = dot.dataset;
+      const hasMemo = d.memo && d.memo.trim();
+
+      // 같은 dot 재클릭 → 고정 해제
+      if (lockedDot === dot) {
+        lockedDot = null;
+        dot.setAttribute('r', origR);
+        dot.setAttribute('stroke', 'white');
+        dot.setAttribute('fill-opacity', '0.82');
+        allDots.forEach(d => d.setAttribute('fill-opacity', '0.82'));
+        tip.style.display = 'none';
+        return;
+      }
+
+      // 이전 고정 해제
+      if (lockedDot) {
+        const prevR = parseFloat(lockedDot.getAttribute('r')) - 4;
+        lockedDot.setAttribute('r', prevR);
+        lockedDot.setAttribute('stroke', 'white');
+        lockedDot.setAttribute('stroke-width', '1.5');
+      }
+
+      // 메모 있으면 모달, 없으면 고정만
+      if (hasMemo) {
+        openMemo(d.title, d.author, d.memo.replace(/&#10;/g, '\n'));
+        lockedDot = dot;
+        dot.setAttribute('r', origR + 4);
+        dot.setAttribute('fill-opacity', '1');
+        dot.setAttribute('stroke-width', '3');
+        dot.setAttribute('stroke', 'var(--gold)');   // 고정 표시: gold 테두리
+        allDots.forEach(dd => { if (dd !== dot) dd.setAttribute('fill-opacity', '0.22'); });
+        showDotTip(dot);
+      } else {
+        // 메모 없으면 툴팁만 고정
+        lockedDot = dot;
+        dot.setAttribute('r', origR + 4);
+        dot.setAttribute('fill-opacity', '1');
+        dot.setAttribute('stroke-width', '3');
+        dot.setAttribute('stroke', 'var(--gold)');
+        allDots.forEach(dd => { if (dd !== dot) dd.setAttribute('fill-opacity', '0.22'); });
+        showDotTip(dot);
+      }
+    });
+  });
+
+  // 차트 바깥 클릭 → 고정 해제
+  document.addEventListener('click', () => {
+    if (!lockedDot) return;
+    const origR = parseFloat(lockedDot.getAttribute('r')) - 4;
+    lockedDot.setAttribute('r', origR);
+    lockedDot.setAttribute('stroke', 'white');
+    lockedDot.setAttribute('stroke-width', '1.5');
+    lockedDot.setAttribute('fill-opacity', '0.82');
+    allDots.forEach(d => d.setAttribute('fill-opacity', '0.82'));
+    lockedDot = null;
+    tip.style.display = 'none';
+  });
+}
+
+// ── 아크 다이어그램 ────────────────────────────────────────────────────────────
+// ── 선버스트 (드릴다운) ────────────────────────────────────────────────────────
+let _sbBooks = [];
+let _sbDrilled = null;
+let _sbAnimFrame = null;
+let _sbHoverFrame = null;
+let _sbAnimT = 0;
+let _sbAnimTarget = 0;
+let _sbSlices = [];
+let _sbHovered = null;
+let _sbHoverT  = {};
+let _sbCanvasRect = null;   // getBoundingClientRect 캐시
+
+const MAJOR_COLORS = {
+  '사회과학': '#4a7c6f', '철학': '#b8962e', '문학': '#c8693a',
+  '총류': '#7a8c4e', '자연과학': '#5d8a9e', '기술과학': '#8b6e4a',
+  '종교': '#9e7a5d', '역사': '#6b7c9e', '예술': '#8e6b9e', '언어': '#6b9e8e'
+};
+
+function renderArc(books) {
+  _sbBooks = books;
+  _sbDrilled = null;
+  _sbAnimT = 0;
+  _sbAnimTarget = 0;
+  _drawSunburst();
+  _sbBindEvents();
+}
+
+function _buildData(books) {
+  const tree = {};
+  books.forEach(b => {
+    const med = b.medium || '기타';
+    const maj = b.major  || '기타';
+    const sub = b.subMajor || b.major || '기타';
+    if (!tree[med]) tree[med] = {};
+    if (!tree[med][maj]) tree[med][maj] = {};
+    tree[med][maj][sub] = (tree[med][maj][sub] || 0) + 1;
+  });
+  return tree;
+}
+
+function _drawSunburst() {
+  const canvas = document.getElementById('arc-canvas');
+  if (!canvas) return;
+  const SIZE = 600;
+  const dpr  = window.devicePixelRatio || 1;
+
+  // 레티나 대응: 물리 픽셀 크기는 dpr 배, CSS 표시 크기는 고정
+  if (canvas.width !== SIZE * dpr || canvas.height !== SIZE * dpr) {
+    canvas.width  = SIZE * dpr;
+    canvas.height = SIZE * dpr;
+    canvas.style.width  = SIZE + 'px';
+    canvas.style.height = SIZE + 'px';
+  }
+
+  const ctx = canvas.getContext('2d');
+  const CX = (SIZE * dpr) / 2, CY = (SIZE * dpr) / 2;
+
+  ctx.clearRect(0, 0, SIZE * dpr, SIZE * dpr);
+  ctx.save();
+  ctx.scale(dpr, dpr);          // 이후 모든 좌표는 CSS 픽셀 기준
+  ctx.translate(SIZE / 2, SIZE / 2);
+
+  const tree = _buildData(_sbBooks);
+  const total = _sbBooks.length;
+  _sbSlices = [];
+
+  if (!_sbDrilled) {
+    // ── 전체 보기 (2링: 매체 → 주류) ─────────────────────────────
+    const R_MED_IN  = 0;
+    const R_MED_OUT = 105;
+    const R_MAJ_IN  = 114;
+    const R_MAJ_OUT = 242;
+
+    let angle = -Math.PI / 2;
+    Object.entries(tree).forEach(([med, majObj]) => {
+      const medTotal = Object.values(majObj).reduce((s, v) => s + Object.values(v).reduce((a,b)=>a+b,0), 0);
+      const medColor = med === '전자책' ? TEAL : ORANGE;
+
+      const medStart = angle;
+      const medEnd   = angle + (medTotal / total) * Math.PI * 2;
+      _drawSlice(ctx, 0, 0, R_MED_IN, R_MED_OUT, medStart, medEnd, medColor, 0.88);
+      const medSpan = medEnd - medStart;
+      _drawSliceLabel(ctx, 0, 0, (R_MED_IN+R_MED_OUT)/2, (medStart+medEnd)/2, med, 30, '#2c2416', true, medSpan);
+
+      Object.entries(majObj).forEach(([maj, subObj]) => {
+        const majTotal = Object.values(subObj).reduce((a,b)=>a+b,0);
+        const majStart = angle;
+        const majEnd   = angle + (majTotal / total) * Math.PI * 2;
+        const col = MAJOR_COLORS[maj] || MUTED;
+        const ht = _sbHoverT[maj] || 0;
+        _drawSlice(ctx, 0, 0, R_MAJ_IN, R_MAJ_OUT, majStart, majEnd, col, 0.85, ht);
+        const span = majEnd - majStart;
+        // 호버된 조각은 레이블도 같이 이동
+        const lx = Math.cos((majStart+majEnd)/2) * 14 * ht;
+        const ly = Math.sin((majStart+majEnd)/2) * 14 * ht;
+        _drawSliceLabel(ctx, lx, ly, (R_MAJ_IN+R_MAJ_OUT)/2, (majStart+majEnd)/2,
+          maj, span > 0.5 ? 23 : 18, '#2c2416', span > 0.22, span);
+        _sbSlices.push({ type:'major', label:maj, start:majStart, end:majEnd, rin:R_MAJ_IN, rout:R_MAJ_OUT });
+        angle = majEnd;
+      });
+    });
+
+    // 중심원
+    ctx.beginPath();
+    ctx.arc(0, 0, R_MED_OUT - 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#faf7f2';
+    ctx.fill();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = MUTED;
+    ctx.font = '18px Noto Sans KR, sans-serif';
+    ctx.fillText('Total', 0, -12);
+    ctx.fillStyle = '#2c2416';
+    ctx.font = 'bold 38px Playfair Display, Georgia, serif';
+    ctx.fillText(total, 0, 22);
+
+  } else {
+    // ── 드릴다운: 선택된 주류 → 강목 ─────────────────────────────
+    const R_MAJ_OUT = 130;
+    const R_SUB_IN  = 140;
+    const R_SUB_OUT = 242;
+
+    const majColor = MAJOR_COLORS[_sbDrilled] || MUTED;
+
+    ctx.beginPath();
+    ctx.arc(0, 0, R_MAJ_OUT, 0, Math.PI * 2);
+    ctx.fillStyle = majColor;
+    ctx.globalAlpha = 0.88;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 22px Noto Sans KR, sans-serif';
+    ctx.fillText(_sbDrilled, 0, -10);
+    const subBooks = _sbBooks.filter(b => b.major === _sbDrilled);
+    ctx.font = '17px Noto Sans KR, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText(subBooks.length + '권', 0, 18);
+    ctx.font = '13px Noto Sans KR, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.fillText('← 클릭하여 돌아가기', 0, 42);
+
+    const subCounts = {};
+    subBooks.forEach(b => { const s = b.subMajor || '기타'; subCounts[s] = (subCounts[s]||0)+1; });
+    const subTotal = subBooks.length;
+    let angle = -Math.PI / 2;
+
+    Object.entries(subCounts).sort((a,b)=>b[1]-a[1]).forEach(([sub, cnt], i) => {
+      const subStart = angle;
+      const subEnd   = angle + (cnt / subTotal) * Math.PI * 2;
+      const col = _hslVariant(majColor, i);
+      const ht = _sbHoverT[sub] || 0;
+      _drawSlice(ctx, 0, 0, R_SUB_IN, R_SUB_OUT, subStart, subEnd, col, 0.88, ht);
+      const span = subEnd - subStart;
+      const lbl = span > 0.45 ? `${sub} ${cnt}권` : sub;
+      const lx = Math.cos((subStart+subEnd)/2) * 14 * ht;
+      const ly = Math.sin((subStart+subEnd)/2) * 14 * ht;
+      _drawSliceLabel(ctx, lx, ly, (R_SUB_IN+R_SUB_OUT)/2, (subStart+subEnd)/2,
+        lbl, span > 0.5 ? 20 : 16, '#2c2416', span > 0.2, span);
+      _sbSlices.push({ type:'sub', label:sub, cnt, start:subStart, end:subEnd, rin:R_SUB_IN, rout:R_SUB_OUT });
+      angle = subEnd;
+    });
+
+    ctx.beginPath();
+    ctx.arc(0, 0, R_MAJ_OUT, 0, Math.PI * 2);
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    _sbSlices.push({ type:'back', label:'back', start:0, end:Math.PI*2, rin:0, rout:R_MAJ_OUT });
+  }
+
+  ctx.restore();
+}
+
+function _drawSlice(ctx, cx, cy, rin, rout, a1, a2, color, alpha=1, hoverT=0) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // 호버 시 중심 방향으로 12px 튀어나옴
+  const HOVER_OFFSET = 14;
+  if (hoverT > 0) {
+    const midA = (a1 + a2) / 2;
+    ctx.translate(Math.cos(midA) * HOVER_OFFSET * hoverT, Math.sin(midA) * HOVER_OFFSET * hoverT);
+  }
+
+  ctx.beginPath();
+  if (rin === 0) {
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, rout, a1, a2);
+    ctx.closePath();
+  } else {
+    ctx.arc(0, 0, rout, a1, a2);
+    ctx.arc(0, 0, rin, a2, a1, true);
+    ctx.closePath();
+  }
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function _drawSliceLabel(ctx, cx, cy, r, midAngle, text, size, color, show, arcSpan) {
+  if (!show) return;
+  ctx.save();
+  ctx.translate(cx + r * Math.cos(midAngle), cy + r * Math.sin(midAngle));
+
+  // 텍스트가 뒤집히지 않도록 하단 반원 보정
+  let rot = midAngle - Math.PI / 2;
+  if (midAngle > Math.PI / 2 && midAngle < Math.PI * 1.5) rot += Math.PI;
+  ctx.rotate(rot);
+
+  // 섹터 호 길이 기반으로 폰트 크기 상한 — arcSpan 없으면 패스
+  let fs = size;
+  if (arcSpan != null) {
+    const arcLen = arcSpan * r;           // 해당 반경에서의 호 길이(px)
+    const maxSz  = Math.max(8, arcLen * 0.30);  // 호 길이의 30% 이하
+    fs = Math.min(fs, maxSz);
+  }
+
+  // measureText로 실제 너비 확인 후 추가 축소
+  ctx.font = `bold ${fs}px Noto Sans KR, sans-serif`;
+  ctx.textAlign = 'center';
+  if (arcSpan != null) {
+    const maxW = arcSpan * r * 0.92;
+    const w    = ctx.measureText(text).width;
+    if (w > maxW) fs = fs * (maxW / w);
+  }
+
+  ctx.font = `bold ${Math.max(8, fs)}px Noto Sans KR, sans-serif`;
+  ctx.fillStyle = color;
+  ctx.shadowColor = 'rgba(255,255,255,0.6)';
+  ctx.shadowBlur = 3;
+  ctx.fillText(text, 0, 4);
+  ctx.restore();
+}
+
+function _hexToHsl(hex) { return hex; }
+function _hslVariant(baseColor, idx) {
+  const variants = [
+    baseColor, baseColor + 'dd', baseColor + 'bb', baseColor + '99',
+    '#8bb4a8', '#d4a870', '#d4845a', '#9ab870'
+  ];
+  return variants[idx % variants.length];
+}
+
+function _getSliceAt(canvas, x, y) {
+  const rect   = _sbCanvasRect || canvas.getBoundingClientRect();
+  const dpr    = window.devicePixelRatio || 1;
+  const scaleX = (canvas.width  / dpr) / rect.width;
+  const scaleY = (canvas.height / dpr) / rect.height;
+  const cx = (x - rect.left) * scaleX - canvas.width  / dpr / 2;
+  const cy = (y - rect.top)  * scaleY - canvas.height / dpr / 2;
+  const dist = Math.sqrt(cx*cx + cy*cy);
+  let angle = Math.atan2(cy, cx);
+
+  return _sbSlices.find(s => {
+    if (dist < s.rin || dist > s.rout) return false;
+    let a = angle;
+    let start = s.start, end = s.end;
+    // 정규화
+    while (a < start) a += Math.PI * 2;
+    return a >= start && a <= end;
+  });
+}
+
+function _animateTo(target, onDone) {
+  if (_sbAnimFrame) cancelAnimationFrame(_sbAnimFrame);
+  const start = performance.now();
+  const DURATION = 320;
+  const from = _sbAnimT;
+
+  function step(now) {
+    let p = Math.min((now - start) / DURATION, 1);
+    // ease in-out
+    p = p < 0.5 ? 2*p*p : -1+(4-2*p)*p;
+    _sbAnimT = from + (target - from) * p;
+    _drawSunburst();
+    if (p < 1) _sbAnimFrame = requestAnimationFrame(step);
+    else { _sbAnimT = target; if (onDone) onDone(); }
+  }
+  _sbAnimFrame = requestAnimationFrame(step);
+}
+
+function _sbBindEvents() {
+  const canvas = document.getElementById('arc-canvas');
+  const hint   = document.getElementById('arc-hint');
+  if (!canvas) return;
+
+  // rect 캐시 초기화 + resize/scroll 시 갱신
+  _sbCanvasRect = canvas.getBoundingClientRect();
+  const _refreshRect = () => { _sbCanvasRect = canvas.getBoundingClientRect(); };
+  window.addEventListener('resize', _refreshRect, { passive: true });
+  window.addEventListener('scroll', _refreshRect, { passive: true });
+
+  // 툴팁
+  const tip = document.getElementById('arc-tip') || (() => {
+    const d = document.createElement('div');
+    d.id = 'arc-tip';
+    d.style.cssText = 'position:fixed;display:none;background:rgba(44,36,22,.92);color:#faf7f2;font-size:12px;padding:7px 12px;border-radius:8px;pointer-events:none;z-index:99;box-shadow:0 4px 12px rgba(0,0,0,.2)';
+    document.body.appendChild(d);
+    return d;
+  })();
+
+  canvas.onmousemove = e => {
+    const s = _getSliceAt(canvas, e.clientX, e.clientY);
+    const hovLabel = (s && s.type !== 'back') ? s.label : null;
+
+    if (hovLabel !== _sbHovered) {
+      _sbHovered = hovLabel;
+      // 호버 애니메이션 루프 시작
+      if (_sbHoverFrame) cancelAnimationFrame(_sbHoverFrame);
+      const HOVER_DUR = 180;
+      const startTime = performance.now();
+      // 각 슬라이스의 시작 hoverT 스냅샷
+      const fromT = Object.assign({}, _sbHoverT);
+
+      function hoverStep(now) {
+        let p = Math.min((now - startTime) / HOVER_DUR, 1);
+        p = p < 0.5 ? 2*p*p : -1+(4-2*p)*p; // ease in-out
+
+        // 모든 슬라이스: 호버된 것 → 1, 나머지 → 0 으로 보간
+        const allLabels = new Set([...Object.keys(fromT), ...(hovLabel ? [hovLabel] : [])]);
+        allLabels.forEach(lbl => {
+          const target = lbl === hovLabel ? 1 : 0;
+          const from   = fromT[lbl] || 0;
+          _sbHoverT[lbl] = from + (target - from) * p;
+          if (_sbHoverT[lbl] < 0.001) delete _sbHoverT[lbl]; // 정리
+        });
+
+        _drawSunburst();
+        if (p < 1) _sbHoverFrame = requestAnimationFrame(hoverStep);
+        else _sbHoverFrame = null;
+      }
+      _sbHoverFrame = requestAnimationFrame(hoverStep);
+    }
+
+    if (s && s.type !== 'back') {
+      tip.innerHTML = `<strong>${s.label}</strong>`;
+      if (s.cnt) tip.innerHTML += ` &nbsp;${s.cnt}권`;
+      tip.style.display = 'block';
+      tip.style.left = (e.clientX + 14) + 'px';
+      tip.style.top  = (e.clientY - 32) + 'px';
+      canvas.style.cursor = 'pointer';
+    } else {
+      tip.style.display = 'none';
+      canvas.style.cursor = s && s.type === 'back' && _sbDrilled ? 'zoom-out' : 'default';
+    }
+  };
+
+  canvas.onmouseleave = () => {
+    tip.style.display = 'none';
+    // 모든 호버 상태 리셋 애니메이션
+    if (_sbHovered !== null) {
+      _sbHovered = null;
+      if (_sbHoverFrame) cancelAnimationFrame(_sbHoverFrame);
+      const HOVER_DUR = 180;
+      const startTime = performance.now();
+      const fromT = Object.assign({}, _sbHoverT);
+
+      function leaveStep(now) {
+        let p = Math.min((now - startTime) / HOVER_DUR, 1);
+        p = p < 0.5 ? 2*p*p : -1+(4-2*p)*p;
+        Object.keys(fromT).forEach(lbl => {
+          _sbHoverT[lbl] = (fromT[lbl] || 0) * (1 - p);
+          if (_sbHoverT[lbl] < 0.001) delete _sbHoverT[lbl];
+        });
+        _drawSunburst();
+        if (p < 1) _sbHoverFrame = requestAnimationFrame(leaveStep);
+        else _sbHoverFrame = null;
+      }
+      _sbHoverFrame = requestAnimationFrame(leaveStep);
+    }
+  };
+
+  canvas.onclick = e => {
+    const s = _getSliceAt(canvas, e.clientX, e.clientY);
+    if (!s) return;
+
+    if (!_sbDrilled && s.type === 'major') {
+      // 드릴다운 — 호버 상태 초기화
+      _sbHovered = null;
+      _sbHoverT = {};
+      if (_sbHoverFrame) { cancelAnimationFrame(_sbHoverFrame); _sbHoverFrame = null; }
+      hint.textContent = '중앙을 클릭하면 전체 보기로 돌아갑니다';
+      _sbDrilled = s.label;
+      _sbSlices = [];
+      _animateTo(1);
+    } else if (_sbDrilled && s.type === 'back') {
+      // 줌아웃 — 호버 상태 초기화
+      _sbHovered = null;
+      _sbHoverT = {};
+      if (_sbHoverFrame) { cancelAnimationFrame(_sbHoverFrame); _sbHoverFrame = null; }
+      hint.textContent = '주류 조각을 클릭하면 강목으로 확대됩니다';
+      _sbDrilled = null;
+      _sbSlices = [];
+      _animateTo(0);
+    }
+  };
+}
+
+// ── 워드클라우드 ──────────────────────────────────────────────────────────────
+function renderGenreRadar(books) {
+  const cntMap = {}, ratingSum = {}, ratingCnt = {};
+  books.forEach(b => {
+    if (!b.major) return;
+    cntMap[b.major]  = (cntMap[b.major]  || 0) + 1;
+    if (b.rating) {
+      ratingSum[b.major] = (ratingSum[b.major] || 0) + b.rating;
+      ratingCnt[b.major] = (ratingCnt[b.major] || 0) + 1;
+    }
+  });
+
+  // 책이 많은 순으로 최대 10개 장르
+  const entries = Object.entries(cntMap).sort((a,b) => b[1]-a[1]).slice(0, 10);
+  const labels  = entries.map(([k]) => k);
+  const counts  = entries.map(([k,v]) => v);
+  const avgRatings = labels.map(k =>
+    ratingCnt[k] ? +(ratingSum[k] / ratingCnt[k]).toFixed(2) : 0
+  );
+
+  // log1p 스케일링 — 편차가 큰 데이터를 고르게 표시
+  const logCounts  = counts.map(v => Math.log1p(v));
+  const maxLogCount = Math.max(...logCounts, 1);
+
+  // 평점(0~5)을 log 스케일 기준으로 정규화 — 시각적 오버레이용
+  const scaledRatings = avgRatings.map(r => (r / 5) * maxLogCount);
+
+  if (charts['genre-radar']) charts['genre-radar'].destroy();
+  charts['genre-radar'] = new Chart(
+    document.getElementById('chart-genre-radar').getContext('2d'), {
+    type: 'radar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '권 수',
+          data: logCounts,
+          backgroundColor: TEAL + '2e',
+          borderColor: TEAL,
+          borderWidth: 2.5,
+          pointBackgroundColor: TEAL,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 7,
+          pointHoverRadius: 9,
+        },
+        {
+          label: '평균 평점',
+          data: scaledRatings,
+          backgroundColor: ORANGE + '22',
+          borderColor: ORANGE,
+          borderWidth: 2,
+          borderDash: [5, 4],
+          pointBackgroundColor: ORANGE,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 6,
+          pointHoverRadius: 8,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        r: {
+          suggestedMin: 0,
+          suggestedMax: maxLogCount,
+          ticks: { display: false },
+          grid:        { color: '#e5ddd0' },
+          angleLines:  { color: '#d9d0c0' },
+          pointLabels: {
+            font: { size: 12, family: 'Noto Sans KR, sans-serif', weight: '600' },
+            color: '#2c2416',
+          },
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { boxWidth: 12, font: { size: 11 }, color: MUTED, padding: 14 }
+        },
+        tooltip: {
+          callbacks: {
+            // log 역변환해 원래 값으로 툴팁 표시
+            label: ctx => {
+              if (ctx.datasetIndex === 0) {
+                const orig = counts[ctx.dataIndex];
+                return ` ${orig}권`;
+              }
+              const orig = avgRatings[ctx.dataIndex];
+              return ` 평점 ${orig > 0 ? orig.toFixed(1) + '점' : '-'}`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── 평점 폴라 에어리어 ────────────────────────────────────────────────────────
+function renderRatingDonut(books) {
+  const buckets = [0,0,0,0,0];
+  books.forEach(b => {
+    const r = b.rating;
+    if (!r) return;
+    const i = Math.min(4, Math.floor(r) - 1);
+    if (i >= 0) buckets[i]++;
+  });
+  const BG   = [ORANGE, '#c4884a', GOLD, TEAL, '#2d5e53'];
+  const BG_A = BG.map(c => c + 'cc');
+  const STARS = ['★', '★★', '★★★', '★★★★', '★★★★★'];
+
+  // 호버 상태 추적 (애니메이션용)
+  let _hovIdx = -1;
+  let _hovT   = 0;  // 0→1 보간값
+  let _hovRaf = null;
+
+  // 커스텀 플러그인: 호버된 섹터를 최대 반경으로 확장 + 중앙 레이블
+  const polarHoverPlugin = {
+    id: 'polarHover',
+    afterDraw(chart) {
+      if (_hovIdx < 0 || _hovT <= 0) return;
+      const { ctx, chartArea } = chart;
+      const meta = chart.getDatasetMeta(0);
+      const el   = meta.data[_hovIdx];
+      if (!el) return;
+
+      const cx       = el.x;
+      const cy       = el.y;
+      const maxR     = Math.min(chartArea.width, chartArea.height) / 2;
+      const startA   = el.startAngle;
+      const endA     = el.endAngle;
+      const innerR   = el.innerRadius ?? 0;
+      // 현재 반경에서 maxR까지 보간
+      const curR     = el.outerRadius + (maxR - el.outerRadius) * _hovT;
+
+      // 섹터 그리기
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(cx + innerR * Math.cos(startA), cy + innerR * Math.sin(startA));
+      ctx.arc(cx, cy, curR, startA, endA);
+      ctx.arc(cx, cy, innerR, endA, startA, true);
+      ctx.closePath();
+      ctx.fillStyle = BG[_hovIdx];
+      ctx.globalAlpha = 0.92;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // 섹터 중앙에 레이블
+      const midA   = (startA + endA) / 2;
+      // 반경 55% 지점에 고정 — curR이 maxR까지 늘어도 항상 섹터 안쪽
+      const labelR = curR * 0.55;
+      const lx     = cx + labelR * Math.cos(midA);
+      const ly     = cy + labelR * Math.sin(midA);
+
+      // 섹터의 호 길이 기반으로 폰트 크기 상한 계산
+      const arcSpan    = endA - startA;
+      const arcLen     = arcSpan * labelR;          // 레이블 위치에서의 호 길이(px)
+      const maxFontSz  = Math.max(8, Math.min(22, arcLen * 0.28));
+      const starSz     = Math.round(maxFontSz * _hovT);
+      const cntSz      = Math.round(maxFontSz * 0.78 * _hovT);
+
+      ctx.save();
+      ctx.translate(lx, ly);
+      // 텍스트가 항상 읽기 쉽게: 하단 반원(π~2π)이면 뒤집어 보정
+      let rot = midA - Math.PI / 2;
+      if (midA > Math.PI / 2 && midA < Math.PI * 1.5) rot += Math.PI;
+      ctx.rotate(rot);
+      ctx.textAlign = 'center';
+
+      // 별점
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${starSz}px sans-serif`;
+      ctx.shadowColor = 'rgba(0,0,0,.3)';
+      ctx.shadowBlur  = 3;
+      ctx.fillText(STARS[_hovIdx], 0, -cntSz * 0.7);
+
+      // 권수
+      ctx.font = `bold ${cntSz}px Noto Sans KR, sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,.92)';
+      ctx.shadowBlur = 2;
+      ctx.fillText(`${buckets[_hovIdx]}권`, 0, starSz * 0.7);
+      ctx.restore();
+
+      ctx.restore();
+    }
+  };
+
+  const canvas = document.getElementById('chart-rating');
+
+  // 마우스 이벤트로 호버 인덱스 감지
+  function bindPolarEvents(chart) {
+    // rect 캐시 초기화 + resize/scroll 시 갱신
+    let _polarRect = canvas.getBoundingClientRect();
+    const _refreshPolarRect = () => { _polarRect = canvas.getBoundingClientRect(); };
+    window.addEventListener('resize', _refreshPolarRect, { passive: true });
+    window.addEventListener('scroll', _refreshPolarRect, { passive: true });
+
+    canvas.addEventListener('mousemove', e => {
+      const pts = chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
+      const idx = pts.length ? pts[0].index : -1;
+      if (idx !== _hovIdx) {
+        _hovIdx = idx;
+        const target = idx >= 0 ? 1 : 0;
+        const start  = performance.now();
+        const from   = _hovT;
+        if (_hovRaf) cancelAnimationFrame(_hovRaf);
+        function step(now) {
+          let p = Math.min((now - start) / 200, 1);
+          p = p < 0.5 ? 2*p*p : -1+(4-2*p)*p;
+          _hovT = from + (target - from) * p;
+          chart.draw();
+          if (p < 1) _hovRaf = requestAnimationFrame(step);
+          else _hovRaf = null;
+        }
+        _hovRaf = requestAnimationFrame(step);
+      }
+    });
+    canvas.addEventListener('mouseleave', () => {
+      if (_hovIdx < 0) return;
+      _hovIdx = -1;
+      const start = performance.now();
+      const from  = _hovT;
+      if (_hovRaf) cancelAnimationFrame(_hovRaf);
+      function step(now) {
+        let p = Math.min((now - start) / 200, 1);
+        p = p < 0.5 ? 2*p*p : -1+(4-2*p)*p;
+        _hovT = from * (1 - p);
+        chart.draw();
+        if (p < 1) _hovRaf = requestAnimationFrame(step);
+        else _hovRaf = null;
+      }
+      _hovRaf = requestAnimationFrame(step);
+    });
+  }
+
+  if (charts['rating']) charts['rating'].destroy();
+  const chartInst = new Chart(canvas.getContext('2d'), {
+    type: 'polarArea',
+    data: {
+      labels: ['★ 1점', '★★ 2점', '★★★ 3점', '★★★★ 4점', '★★★★★ 5점'],
+      datasets: [{
+        data: buckets,
+        backgroundColor: BG_A,
+        borderColor: BG,
+        borderWidth: 1.5,
+        hoverBackgroundColor: BG_A,  // 기본 hover 효과 억제
+        hoverBorderWidth: 1.5,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 400 },
+      scales: {
+        r: {
+          ticks: { display: false },
+          grid: { color: '#e5ddd0' },
+          suggestedMin: 0,
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { boxWidth: 12, font: { size: 11 }, color: MUTED, padding: 10 }
+        },
+        tooltip: { enabled: false }  // 커스텀 레이블로 대체
+      }
+    },
+    plugins: [polarHoverPlugin]
+  });
+  charts['rating'] = chartInst;
+  bindPolarEvents(chartInst);
+}
+
+// ── 연도별 막대 ───────────────────────────────────────────────────────────────
+function renderYearBar() {
+  const all = getCompleted('all');
+  const byYear = {};
+  all.forEach(b => { byYear[b.year]=(byYear[b.year]||0)+1; });
+  const years = Object.keys(byYear).sort();
+
+  if (charts['year']) charts['year'].destroy();
+  charts['year'] = new Chart(document.getElementById('chart-year').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: years,
+      datasets: [{
+        data: years.map(y => byYear[y]),
+        fill: true,
+        backgroundColor: ctx => {
+          const grad = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.chartArea?.bottom ?? 240);
+          grad.addColorStop(0, TEAL + 'aa');
+          grad.addColorStop(1, TEAL + '0d');
+          return grad;
+        },
+        borderColor: TEAL,
+        borderWidth: 2.5,
+        pointBackgroundColor: years.map((y, i) => {
+          if (i === years.length - 1) return GOLD;          // 마지막 연도(올해) — 골드
+          if (activeYear === 'all' || y === activeYear) return TEAL;
+          return '#b0a090';
+        }),
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 7,
+        pointHoverRadius: 9,
+        tension: 0.35,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => ` ${ctx.raw}권` }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize: 1, color: MUTED },
+          grid: { color: '#ede7d8' }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: MUTED, font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+// ── 평점 vs 평균 비교 ─────────────────────────────────────────────────────────
+function renderRatingCompare(books) {
+  const rated = books.filter(b => b.rating > 0);
+  if (!rated.length) { document.getElementById('rating-compare').innerHTML = ''; return; }
+
+  const avg = rated.reduce((s, b) => s + b.rating, 0) / rated.length;
+
+  // 편차 기준 정렬 후 Top 5 + Bottom 5 추출
+  const byDiff = [...rated].sort((a, b) => (b.rating - avg) - (a.rating - avg));
+  const top5   = byDiff.slice(0, 5);                 // 편차 큰 순 (Best)
+  const bot5   = byDiff.slice(-5);                   // 편차 작은 순 (Worst, 가장 싫어한 것이 위)
+  const items  = [...top5, ...bot5];
+
+  const maxDiff = Math.max(...items.map(b => Math.abs(b.rating - avg)), 0.1);
+
+  // 툴팁 엘리먼트 (없으면 생성)
+  let tip = document.getElementById('dv-tip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'dv-tip';
+    document.body.appendChild(tip);
+  }
+
+  // inspector 엘리먼트 참조
+  const hintLayer   = document.querySelector('.insp-hint-layer');
+  const detailLayer = document.querySelector('.insp-detail');
+  const elTitle       = document.getElementById('insp-title');
+  const elAuthor      = document.getElementById('insp-author');
+  const elDate        = document.getElementById('insp-date');
+  const elAvg         = document.getElementById('insp-avg');
+  const elMine        = document.getElementById('insp-mine');
+  const elDiff        = document.getElementById('insp-diff');
+  const elMemoPreview = document.getElementById('insp-memo-preview');
+
+  function inspShow(b, diff, sign, pos) {
+    elTitle.textContent  = b.title;
+    elAuthor.textContent = b.author || '';
+    elDate.textContent   = b.date ? `완독 ${b.date}` : '';
+    elAvg.textContent    = `평균 ${avg.toFixed(1)}점`;
+    elMine.textContent   = `내 평점 ${b.rating}점`;
+    elMine.className     = `insp-mine ${pos ? 'pos' : 'neg'}`;
+    elDiff.textContent   = `${sign}${diff.toFixed(1)}점`;
+    elDiff.className     = `insp-diff ${pos ? 'pos' : 'neg'}`;
+
+    // 메모 미리보기 — 첫 2줄 + 클릭 시 전체 모달
+    const memo = b.memo ? b.memo.trim() : '';
+    if (memo) {
+      // 첫 줄만 미리보기 텍스트로 (CSS line-clamp가 2줄로 자름)
+      elMemoPreview.textContent = memo;
+      elMemoPreview.className   = 'insp-memo-preview';
+      elMemoPreview.title       = '클릭하여 전체 메모 보기';
+      elMemoPreview.onclick     = () => openMemo(b.title, b.author, memo);
+      elMemoPreview.style.pointerEvents = 'all';
+    } else {
+      elMemoPreview.textContent = '메모 없음';
+      elMemoPreview.className   = 'insp-memo-preview empty';
+      elMemoPreview.onclick     = null;
+      elMemoPreview.style.pointerEvents = 'none';
+    }
+
+    hintLayer.style.opacity        = '0';
+    detailLayer.style.opacity      = '1';
+    detailLayer.style.pointerEvents = 'all';   // 메모 클릭 활성화
+  }
+
+  function inspReset() {
+    hintLayer.style.opacity        = '1';
+    detailLayer.style.opacity      = '0';
+    detailLayer.style.pointerEvents = 'none';
+    tip.style.display = 'none';
+  }
+
+  const list = document.getElementById('rating-compare');
+  list.innerHTML = items.map(b => {
+    const diff  = b.rating - avg;
+    const pct   = (Math.abs(diff) / maxDiff * 45).toFixed(1); // 최대 45% (셀 너비의 90%)
+    const pos   = diff >= 0;
+    const sign  = pos ? '+' : '';
+
+    // inspector용 data 속성
+    const insp = encodeURIComponent(JSON.stringify({
+      title: b.title, author: b.author || '',
+      date: b.date || '', memo: b.memo || '',
+      rating: b.rating, diff: diff.toFixed(2), pos
+    }));
+
+    if (pos) {
+      return `<li class="dv-item" data-insp="${insp}">
+        <div class="dv-left">
+          <span class="dv-title" title="${escHtml(b.title)}">${escHtml(b.title)}</span>
+        </div>
+        <div class="dv-right">
+          <div class="dv-bar pos" style="--dv-w:${pct}%"></div>
+          <span class="dv-val pos">${sign}${diff.toFixed(1)}</span>
+        </div>
+      </li>`;
+    } else {
+      return `<li class="dv-item" data-insp="${insp}">
+        <div class="dv-left neg-cell">
+          <div class="dv-bar neg" style="--dv-w:${pct}%"></div>
+          <span class="dv-val neg">${sign}${diff.toFixed(1)}</span>
+        </div>
+        <div class="dv-right">
+          <span class="dv-title" title="${escHtml(b.title)}">${escHtml(b.title)}</span>
+        </div>
+      </li>`;
+    }
+  }).join('');
+
+  // ── 고정(lock) 상태 ──
+  let lockedLi = null;
+
+  function lockItem(li) {
+    // 이전 고정 해제
+    if (lockedLi) lockedLi.classList.remove('locked');
+    // 같은 항목 재클릭 시 잠금 해제
+    if (lockedLi === li) { lockedLi = null; inspReset(); return; }
+    lockedLi = li;
+    li.classList.add('locked');
+    const d = JSON.parse(decodeURIComponent(li.dataset.insp || '{}'));
+    if (d.title) inspShow(d, parseFloat(d.diff), parseFloat(d.diff) >= 0 ? '+' : '', d.pos);
+  }
+
+  list.querySelectorAll('.dv-item').forEach(li => {
+    // 클릭 → 고정
+    li.addEventListener('click', () => lockItem(li));
+
+    // hover → 고정 없을 때만 미리보기
+    li.addEventListener('mouseenter', () => {
+      if (lockedLi) return;
+      const d = JSON.parse(decodeURIComponent(li.dataset.insp || '{}'));
+      if (d.title) inspShow(d, parseFloat(d.diff), parseFloat(d.diff) >= 0 ? '+' : '', d.pos);
+    });
+    li.addEventListener('mouseleave', () => {
+      if (lockedLi) return;   // 고정 상태면 mouseleave 무시
+      inspReset();
+    });
+  });
+
+  // 목록 바깥 클릭 시 고정 해제
+  document.addEventListener('click', e => {
+    if (lockedLi && !list.contains(e.target) && !document.getElementById('memo-modal').contains(e.target)) {
+      lockedLi.classList.remove('locked');
+      lockedLi = null;
+      inspReset();
+    }
+  }, { capture: true });
+
+  // 초기 상태 보장
+  inspReset();
+}
+
+// ── Top Books ─────────────────────────────────────────────────────────────────
+function renderTopBooks(books) {
+  const top = [...books].filter(b=>b.rating>0).sort((a,b)=>b.rating-a.rating).slice(0,10);
+  document.getElementById('top-books').innerHTML = top.map((b,i) => `
+    <li class="top-item">
+      <span class="top-rank ${i===0?'r1':i===1?'r2':i===2?'r3':''}">${i+1}</span>
+      <div>
+        <div class="top-title">${escHtml(b.title)}</div>
+        <div class="top-author">${escHtml(b.author)}</div>
+      </div>
+      <span class="top-rating">★ ${b.rating}</span>
+    </li>`).join('');
+}
+
+// ── 테이블 ────────────────────────────────────────────────────────────────────
+const majorBadgeMap = { '사회과학':'teal','철학':'gold','문학':'orange','총류':'muted','자연과학':'olive','기술과학':'olive','종교':'muted','역사':'gold' };
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── 메모 모달 ─────────────────────────────────────────────────────────────────
+function openMemo(title, author, memo) {
+  document.getElementById('memo-panel-title-el').textContent = title;
+  document.getElementById('memo-panel-author-el').textContent = author;
+  document.getElementById('memo-panel-body').innerHTML = memo
+    ? escHtml(memo)
+    : '<span class="memo-empty">메모가 없습니다.</span>';
+  document.getElementById('memo-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMemo() {
+  document.getElementById('memo-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+// 닫기 버튼 + 배경 클릭으로 닫기
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('memo-close-btn').addEventListener('click', closeMemo);
+  document.getElementById('memo-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('memo-modal')) closeMemo();
+  });
+  // ESC 키로도 닫기
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeMemo();
+  });
+});
+
+function starsHtml(r) {
+  if (!r) return '<span style="color:var(--border)">—</span>';
+  let s = '<span style="white-space:nowrap">';
+  for (let i=1;i<=5;i++) s += `<span class="${i<=Math.round(r)?'star-fill':'star-empty'}">★</span>`;
+  s += ` <small style="color:var(--muted)">${r}</small></span>`;
+  return s;
+}
+
+function sortTable(key) {
+  if (sortKey === key) sortAsc = !sortAsc; else { sortKey = key; sortAsc = key!=='rating'; }
+  ['date','title','rating'].forEach(k => { const el=document.getElementById('sort-'+k); if(el) el.textContent = k===sortKey?(sortAsc?'↑':'↓'):'↕'; });
+  currentPage = 1; renderTable();
+}
+
+function renderTable() {
+  let data = getFiltered();
+  data.sort((a,b)=>{
+    if (sortKey==='rating') return sortAsc ? a.rating-b.rating : b.rating-a.rating;
+    const av=String(a[sortKey]||''), bv=String(b[sortKey]||'');
+    return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+  });
+  const total = data.length;
+  const totalPages = Math.max(1, Math.ceil(total/PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  const start = (currentPage-1)*PAGE_SIZE;
+  const page = data.slice(start, start+PAGE_SIZE);
+
+  if (total === 0) {
+    document.getElementById('page-info').textContent = '';
+    document.getElementById('book-table-body').innerHTML =
+      `<tr><td colspan="7" style="text-align:center;padding:40px 0;color:var(--muted);font-size:.85rem;">검색 결과가 없습니다.</td></tr>`;
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  document.getElementById('page-info').textContent = `${total}권 중 ${start+1}–${Math.min(start+PAGE_SIZE,total)} 표시`;
+  // 페이지 데이터를 _memoPage에 저장 — 버튼 클릭 시 index로 참조
+  window._memoPage = page;
+
+  document.getElementById('book-table-body').innerHTML = page.map((b, i) => {
+    const bc  = majorBadgeMap[b.major] || 'muted';
+    const med = b.medium === '전자책'
+      ? `<span class="badge badge-teal">전자책</span>`
+      : `<span class="badge badge-muted">종이책</span>`;
+    const hasMemo = b.memo && b.memo.trim();
+    const memoCell = hasMemo
+      ? `<td style="text-align:center">
+           <button class="memo-btn" data-idx="${i}" title="메모 보기"
+                   aria-label="${escHtml(b.title)} 메모 보기">📝</button>
+         </td>`
+      : `<td></td>`;
+    return `<tr>
+      <td style="color:var(--muted);white-space:nowrap;font-size:.74rem">${escHtml(b.date)}</td>
+      <td><strong>${escHtml(b.title)}</strong></td>
+      <td style="color:var(--muted)">${escHtml(b.author)}</td>
+      <td><span class="badge badge-${bc}">${escHtml(b.major)}</span></td>
+      <td>${med}</td>
+      <td>${starsHtml(b.rating)}</td>
+      ${memoCell}
+    </tr>`;
+  }).join('');
+
+  // innerHTML 완료 후 이벤트 바인딩 (인라인 onclick 완전 제거)
+  document.querySelectorAll('#book-table-body .memo-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const b = window._memoPage[+btn.dataset.idx];
+      if (b) openMemo(b.title, b.author, b.memo);
+    });
+  });
+
+  const pag = document.getElementById('pagination');
+  pag.innerHTML = '';
+  const lo=Math.max(1,currentPage-4), hi=Math.min(totalPages,currentPage+4);
+  if (lo>1) addPBtn(pag,'‹',currentPage-1);
+  for(let p=lo;p<=hi;p++) addPBtn(pag,p,p,p===currentPage);
+  if (hi<totalPages) addPBtn(pag,'›',currentPage+1);
+}
+
+function addPBtn(c, label, page, active=false) {
+  const btn=document.createElement('button');
+  btn.className='page-btn'+(active?' active':'');
+  btn.textContent=label;
+  btn.onclick=()=>{currentPage=page;renderTable();};
+  c.appendChild(btn);
+}
+
+function populateFilters() {
+  const ms = document.getElementById('filter-major');
+  const es = document.getElementById('filter-medium');
+  if (ms.options.length<=1) [...new Set(allBooks.map(b=>b.major).filter(Boolean))].sort().forEach(m=>ms.add(new Option(m,m)));
+  if (es.options.length<=1) [...new Set(allBooks.map(b=>b.medium).filter(Boolean))].sort().forEach(m=>es.add(new Option(m,m)));
+}
+
+// ── 이벤트 ────────────────────────────────────────────────────────────────────
+document.getElementById('search-input').addEventListener('input',  ()=>{currentPage=1;renderTable();});
+document.getElementById('filter-major').addEventListener('change', ()=>{currentPage=1;renderTable();});
+document.getElementById('filter-medium').addEventListener('change',()=>{currentPage=1;renderTable();});
+document.getElementById('filter-status').addEventListener('change',()=>{currentPage=1;renderAll();});
+window.addEventListener('resize', ()=>{ const b=getCompleted(activeYear); renderTimeline(b); renderArc(b); });
+
+// ── 시작 ──────────────────────────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
