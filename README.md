@@ -49,7 +49,7 @@ reading-dashboard/
 | Name | Value |
 |---|---|
 | `SHEETS_API_KEY` | Google Cloud Console API Key |
-| `SPREADSHEET_ID` | `14b9pIaIsFElalusPhGEt1m9AGcYMWpjElPUvvUgh0CY` |
+| `SPREADSHEET_ID` | `your_spreadsheet_id_here` |
 
 ### 2. Google Sheets 공유 설정
 
