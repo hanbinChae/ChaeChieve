@@ -481,7 +481,7 @@
     .search-row input { flex: 1; min-width: 160px; }
     .search-row input:focus, .search-row select:focus { border-color: var(--teal); }
 
-    .table-wrap { overflow-x: auto; }
+    .table-wrap { overflow-x: auto; min-height: 480px; }
     table { width: 100%; border-collapse: collapse; font-size: .8rem; }
     thead th {
       text-align: left; padding: 9px 10px;
@@ -509,14 +509,18 @@
     .star-empty { color: var(--border); }
 
     .page-info { font-size: .76rem; color: var(--muted); margin-top: 12px; }
-    .pagination { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+    .pagination { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
     .page-btn {
-      padding: 4px 10px; border: 1px solid var(--border);
+      padding: 5px 10px; min-width: 32px; height: 30px; border: 1px solid var(--border);
       border-radius: 6px; font-size: .74rem; cursor: pointer;
       background: transparent; color: var(--muted); font-family: inherit;
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: all .15s ease;
     }
-    .page-btn.active { background: var(--teal); color: #fff; border-color: var(--teal); }
-    .page-btn:hover:not(.active) { border-color: var(--teal); color: var(--teal); }
+    .page-btn.active { background: var(--teal); color: #fff; border-color: var(--teal); font-weight: 700; }
+    .page-btn:hover:not(.active):not(:disabled) { border-color: var(--teal); color: var(--teal); background: rgba(74,124,111,.06); }
+    .page-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .page-ellipsis { font-size: .74rem; color: var(--muted); padding: 0 4px; user-select: none; }
 
     /* ── Top Books ── */
     .top-list { list-style: none; }
@@ -2211,20 +2215,88 @@ function renderTable() {
     });
   });
 
-  const pag = document.getElementById('pagination');
-  pag.innerHTML = '';
-  const lo=Math.max(1,currentPage-4), hi=Math.min(totalPages,currentPage+4);
-  if (lo>1) addPBtn(pag,'‹',currentPage-1);
-  for(let p=lo;p<=hi;p++) addPBtn(pag,p,p,p===currentPage);
-  if (hi<totalPages) addPBtn(pag,'›',currentPage+1);
+  renderPagination(totalPages);
 }
 
-function addPBtn(c, label, page, active=false) {
-  const btn=document.createElement('button');
-  btn.className='page-btn'+(active?' active':'');
-  btn.textContent=label;
-  btn.onclick=()=>{currentPage=page;renderTable();};
-  c.appendChild(btn);
+function scrollToTableTop() {
+  const tableEl = document.querySelector('.table-wrap');
+  if (tableEl) {
+    const headerOffset = 80;
+    const elementPosition = tableEl.getBoundingClientRect().top;
+    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+    window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+  }
+}
+
+function changePage(page) {
+  currentPage = page;
+  renderTable();
+  scrollToTableTop();
+}
+
+function renderPagination(totalPages) {
+  const pag = document.getElementById('pagination');
+  pag.innerHTML = '';
+  if (totalPages <= 1) return;
+
+  const addBtn = (label, page, active=false, disabled=false, title='') => {
+    const btn = document.createElement('button');
+    btn.className = 'page-btn' + (active ? ' active' : '');
+    btn.textContent = label;
+    if (title) btn.title = title;
+    if (disabled) {
+      btn.disabled = true;
+    } else {
+      btn.onclick = () => changePage(page);
+    }
+    pag.appendChild(btn);
+  };
+
+  const addEllipsis = () => {
+    const span = document.createElement('span');
+    span.className = 'page-ellipsis';
+    span.textContent = '…';
+    pag.appendChild(span);
+  };
+
+  // 이전/처음 버튼
+  addBtn('«', 1, false, currentPage === 1, '첫 페이지');
+  addBtn('‹', currentPage - 1, false, currentPage === 1, '이전 페이지');
+
+  // 페이지 번호 리스트 계산
+  let pages = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    let start = Math.max(2, currentPage - 2);
+    let end = Math.min(totalPages - 1, currentPage + 2);
+
+    if (currentPage <= 3) {
+      start = 2;
+      end = 5;
+    } else if (currentPage >= totalPages - 2) {
+      start = totalPages - 4;
+      end = totalPages - 1;
+    }
+
+    if (start > 2) pages.push('...');
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (end < totalPages - 1) pages.push('...');
+    pages.push(totalPages);
+  }
+
+  pages.forEach(p => {
+    if (p === '...') {
+      addEllipsis();
+    } else {
+      addBtn(p, p, p === currentPage);
+    }
+  });
+
+  // 다음/마지막 버튼
+  addBtn('›', currentPage + 1, false, currentPage === totalPages, '다음 페이지');
+  addBtn('»', totalPages, false, currentPage === totalPages, '마지막 페이지');
 }
 
 function populateFilters() {
