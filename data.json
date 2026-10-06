@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-06 06:53 KST",
+  "updated_at": "2026-10-07 00:47 KST",
   "count": 166,
   "books": [
     {
@@ -2163,6 +2163,21 @@
       "decimal": "104"
     },
     {
+      "status": "O",
+      "date": "2026. 10. 7",
+      "year": "2026",
+      "title": "내 심장을 쏴라",
+      "author": "정유정",
+      "major": "문학",
+      "subMajor": "한국문학",
+      "minor": "소설",
+      "medium": "전자책",
+      "rating": 3.4,
+      "memo": "\"운명이 내 삶을 침몰시킬때, 나는 무엇을 할 수 있는가?\"",
+      "duration": "27-Day",
+      "decimal": "813"
+    },
+    {
       "status": "X",
       "date": "",
       "year": "",
@@ -2476,21 +2491,6 @@
       "memo": "",
       "duration": "X",
       "decimal": "420"
-    },
-    {
-      "status": "X",
-      "date": "",
-      "year": "",
-      "title": "내 심장을 쏴라",
-      "author": "정유정",
-      "major": "문학",
-      "subMajor": "한국문학",
-      "minor": "소설",
-      "medium": "",
-      "rating": 0.0,
-      "memo": "",
-      "duration": "X",
-      "decimal": "813"
     }
   ]
 }
