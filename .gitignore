@@ -1,0 +1,7 @@
+﻿data.json
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+__pycache__/
+*.pyc

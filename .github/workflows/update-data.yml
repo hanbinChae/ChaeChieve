@@ -1,25 +1,42 @@
-name: Update Reading Data
+name: Build and Deploy Reading Dashboard
 
 on:
-  schedule:
-    - cron: '0 15 * * *'   # 매일 자정 KST (UTC 15:00)
-  workflow_dispatch:         # 수동 트리거 버튼
+  # 1. main 브랜치 코드 변경 시 자동 배포
+  push:
+    branches:
+      - main
 
+  # 2. 매일 자정 KST 정기 동기화 (UTC 15:00)
+  schedule:
+    - cron: '0 15 * * *'
+
+  # 3. GitHub UI에서 수동 실행 버튼
+  workflow_dispatch:
+
+  # 4. Google Apps Script(시트 수정 시) 실시간 웹훅 트리거
+  repository_dispatch:
+    types: [sheet-updated]
+
+# 동시 실행 방지
 concurrency:
-  group: update-data
+  group: pages
   cancel-in-progress: false
 
-jobs:
-  fetch-and-commit:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+# GitHub Pages 배포를 위한 권한
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,21 +46,20 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Fetch data from Google Sheets
+      - name: Fetch data from Google Sheets (generates data.json)
         env:
-          SHEETS_API_KEY:   ${{ secrets.SHEETS_API_KEY }}
-          SPREADSHEET_ID:   ${{ secrets.SPREADSHEET_ID }}
+          SHEETS_API_KEY: ${{ secrets.SHEETS_API_KEY }}
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
         run: python scripts/fetch_data.py
 
-      - name: Commit & push data.json (if changed)
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data.json
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "data: 독서 기록 자동 갱신 $(date -u +'%Y-%m-%d %H:%M UTC')"
-            git pull --rebase origin main
-            git push origin main
-          fi
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
