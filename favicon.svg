@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 68" width="64" height="68">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#3a6b5e"/>
+      <stop offset="100%" stop-color="#1a3530"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#f0d878"/>
+      <stop offset="50%"  stop-color="#b8962e"/>
+      <stop offset="100%" stop-color="#7a5c0a"/>
+    </linearGradient>
+    <linearGradient id="txt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#fdf6e0"/>
+      <stop offset="100%" stop-color="#c8b87a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="40%" cy="20%" r="55%">
+      <stop offset="0%"   stop-color="#fff" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 외곽 골드 실드 (테두리 효과) -->
+  <path d="M32,1 L61,13 L61,38 Q61,59 32,67 Q3,59 3,38 L3,13 Z" fill="url(#gold)"/>
+
+  <!-- 내부 배경 실드 -->
+  <path d="M32,4.5 L57.5,15.5 L57.5,38 Q57.5,56 32,63.5 Q6.5,56 6.5,38 L6.5,15.5 Z" fill="url(#bg)"/>
+
+  <!-- 광택 -->
+  <path d="M32,4.5 L57.5,15.5 L57.5,38 Q57.5,56 32,63.5 Q6.5,56 6.5,38 L6.5,15.5 Z" fill="url(#glow)"/>
+
+  <!-- 내부 얇은 골드 실드 선 -->
+  <path d="M32,8.5 L53.5,18.5 L53.5,38 Q53.5,52.5 32,59.5 Q10.5,52.5 10.5,38 L10.5,18.5 Z"
+    fill="none" stroke="url(#gold)" stroke-width="0.6" opacity="0.5"/>
+
+  <!-- C — 이탤릭 세리프, 골드 그라디언트 -->
+  <text
+    x="33" y="46"
+    text-anchor="middle"
+    font-family="'Didot', 'Bodoni MT', 'Playfair Display', Georgia, serif"
+    font-size="38"
+    font-weight="700"
+    font-style="italic"
+    fill="url(#txt)"
+  >C</text>
+</svg>
