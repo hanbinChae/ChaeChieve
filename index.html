@@ -6,9 +6,10 @@
   <title>채카이브 독서 대시보드</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;600&display=swap');
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -634,6 +635,68 @@
     .chart-wrap.h240 { height: 240px; }
     .chart-wrap.h280 { height: 280px; }
     .chart-wrap.h320 { height: 320px; }
+    /* ── Books per Year: 에디토리얼 툴팁 + 진행 중(Pulse) ── */
+    .yr-tip {
+      position: absolute; left: 0; top: 0; z-index: 5;
+      transform: translate(-50%, calc(-100% - 16px));
+      pointer-events: none; opacity: 0;
+      min-width: 150px; padding: 12px 16px 13px;
+      background: #fffaf0; color: #1f1a10;
+      border: 1px solid #d6c7a3; border-radius: 4px;
+      box-shadow: 0 8px 22px rgba(74,60,30,.18);
+      font-family: 'Playfair Display', 'Noto Serif KR', serif;
+      line-height: 1.4; white-space: nowrap;
+      -webkit-font-smoothing: antialiased;
+      transition: opacity .18s ease, left .14s ease-out, top .14s ease-out;
+    }
+    .yr-tip.on { opacity: 1; }
+    .yr-tip-year {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      font-size: 15px; font-weight: 900; letter-spacing: .06em;
+      color: #2a2214; border-bottom: 1px solid #dccfae;
+      padding-bottom: 7px; margin-bottom: 8px;
+    }
+    .yr-tip-year em {
+      font-family: 'Noto Sans KR', system-ui, sans-serif;
+      font-style: normal; font-weight: 700; font-size: 10px; letter-spacing: .1em;
+      color: #6e5410; background: #f1e3b3; padding: 2px 7px; border-radius: 10px;
+    }
+    .yr-tip-count {
+      display: flex; align-items: baseline; gap: 5px;
+      font-family: 'Noto Sans KR', system-ui, sans-serif;
+      font-size: 14px; font-weight: 700; color: #2a2214;
+    }
+    .yr-tip-count b {
+      font-family: 'Playfair Display', 'Noto Serif KR', serif;
+      font-size: 32px; font-weight: 900; line-height: 1; color: #1f1a10;
+    }
+    .yr-tip-delta {
+      margin-top: 7px;
+      font-family: 'Noto Sans KR', system-ui, sans-serif;
+      font-size: 12.5px; font-weight: 700; color: #4a3f30;
+    }
+    .yr-tip-delta.up   { color: #2f6b5c; }
+    .yr-tip-delta.down { color: #a4482a; }
+
+    .yr-pulse {
+      position: absolute; width: 10px; height: 10px;
+      margin: -5px 0 0 -5px; border-radius: 50%;
+      pointer-events: none; visibility: hidden;
+    }
+    .yr-pulse::before, .yr-pulse::after {
+      content: ''; position: absolute; inset: 0; border-radius: 50%;
+      background: var(--pc, #b8962e); opacity: 0;
+      animation: yr-pulse 2.4s ease-out infinite;
+    }
+    .yr-pulse.dot { background: #fffaf0; box-shadow: 0 0 0 2px var(--pc, #b8962e); }
+    .yr-pulse::after { animation-delay: 1.2s; }
+    @keyframes yr-pulse {
+      0%   { transform: scale(1);   opacity: .45; }
+      100% { transform: scale(3.2); opacity: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) { .yr-pulse::before, .yr-pulse::after { animation: none; } }
+
+
 
     /* ── 선버스트 + 레이더 높이 동기화 ── */
     .sunburst-card {
@@ -2616,6 +2679,11 @@ function renderTimeline(books) {
     _tlRect   = svg.getBoundingClientRect();
     _cardRect = card.getBoundingClientRect();
   };
+  if (window._tlRectHandler) {
+    window.removeEventListener('resize', window._tlRectHandler);
+    window.removeEventListener('scroll', window._tlRectHandler);
+  }
+  window._tlRectHandler = _refreshTlRect;
   window.addEventListener('resize',  _refreshTlRect, { passive: true });
   window.addEventListener('scroll', _refreshTlRect, { passive: true });
 
@@ -2723,13 +2791,15 @@ function renderTimeline(books) {
     });
   });
 
-  // 차트 바깥 영역 클릭 시 고정 해제
-  document.addEventListener('click', () => {
+  // 차트 바깥 영역 클릭 시 고정 해제 (재렌더 시 이전 리스너 해제)
+  if (window._tlDocClick) document.removeEventListener('click', window._tlDocClick);
+  window._tlDocClick = () => {
     if (!lockedDot) return;
     lockedDot = null;
     setFocus(null);
     tip.style.display = 'none';
-  });
+  };
+  document.addEventListener('click', window._tlDocClick);
 
   // ⑧ 가로 휠 스크롤 지원 (마우스 휠로 타임라인을 좌우로 편리하게 탐색)
   if (!wrap._wheelBound) {
@@ -2773,6 +2843,8 @@ function renderTimeline(books) {
     else arrowRight.classList.remove('visible', 'active');
   };
 
+  if (wrap._updArrows) wrap.removeEventListener('scroll', wrap._updArrows);
+  wrap._updArrows = updateArrows;
   wrap.addEventListener('scroll', updateArrows, { passive: true });
 
   // ⑩ [Default Position] 기본 스크롤 위치를 가장 최신 독서 기록(오른쪽 끝)으로 설정
@@ -2886,7 +2958,10 @@ function renderArc(books) {
   _sbBindEvents();
 }
 
+// 호버 애니메이션이 매 프레임 _drawSunburst를 부르므로, 같은 입력이면 트리를 재사용
+let _sbTreeSrc = null, _sbTreeCache = null;
 function _buildData(books) {
+  if (books === _sbTreeSrc && _sbTreeCache) return _sbTreeCache;
   const tree = {};
   books.forEach(b => {
     const med = b.medium || '기타';
@@ -2896,6 +2971,7 @@ function _buildData(books) {
     if (!tree[med][maj]) tree[med][maj] = {};
     tree[med][maj][sub] = (tree[med][maj][sub] || 0) + 1;
   });
+  _sbTreeSrc = books; _sbTreeCache = tree;
   return tree;
 }
 
@@ -3153,6 +3229,11 @@ function _sbBindEvents() {
   // rect 캐시 초기화 + resize/scroll 시 갱신
   _sbCanvasRect = canvas.getBoundingClientRect();
   const _refreshRect = () => { _sbCanvasRect = canvas.getBoundingClientRect(); };
+  if (window._sbRectHandler) {
+    window.removeEventListener('resize', window._sbRectHandler);
+    window.removeEventListener('scroll', window._sbRectHandler);
+  }
+  window._sbRectHandler = _refreshRect;
   window.addEventListener('resize', _refreshRect, { passive: true });
   window.addEventListener('scroll', _refreshRect, { passive: true });
 
@@ -3362,7 +3443,9 @@ function renderGenreRadar(books) {
   });
 }
 
-// ── 평점 폴라 에어리어 ────────────────────────────────────────────────────────
+// ── 평점 폴라 에어리어 (스태거 드로잉 · 마그네틱 확장 · 에디토리얼 툴팁) ───────────
+let _ratingDrawn = false;   // 최초 1회만 풀 스태거 애니메이션 (필터 변경 시엔 짧게)
+
 function renderRatingDonut(books) {
   const buckets = [0,0,0,0,0];
   books.forEach(b => {
@@ -3371,233 +3454,422 @@ function renderRatingDonut(books) {
     const i = Math.min(4, Math.floor(r) - 1);
     if (i >= 0) buckets[i]++;
   });
-  const BG   = [ORANGE, '#c4884a', GOLD, TEAL, '#2d5e53'];
-  const BG_A = BG.map(c => c + 'cc');
+  const BG    = [ORANGE, '#c4884a', GOLD, TEAL, '#2d5e53'];
   const STARS = ['★', '★★', '★★★', '★★★★', '★★★★★'];
-
-  // 호버 상태 추적 (애니메이션용)
-  let _hovIdx = -1;
-  let _hovT   = 0;  // 0→1 보간값
-  let _hovRaf = null;
-
-  // 커스텀 플러그인: 호버된 섹터를 최대 반경으로 확장 + 중앙 레이블
-  const polarHoverPlugin = {
-    id: 'polarHover',
-    afterDraw(chart) {
-      if (_hovIdx < 0 || _hovT <= 0) return;
-      const { ctx, chartArea } = chart;
-      const meta = chart.getDatasetMeta(0);
-      const el   = meta.data[_hovIdx];
-      if (!el) return;
-
-      const cx       = el.x;
-      const cy       = el.y;
-      const maxR     = Math.min(chartArea.width, chartArea.height) / 2;
-      const startA   = el.startAngle;
-      const endA     = el.endAngle;
-      const innerR   = el.innerRadius ?? 0;
-      // 현재 반경에서 maxR까지 보간
-      const curR     = el.outerRadius + (maxR - el.outerRadius) * _hovT;
-
-      // 섹터 그리기
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(cx + innerR * Math.cos(startA), cy + innerR * Math.sin(startA));
-      ctx.arc(cx, cy, curR, startA, endA);
-      ctx.arc(cx, cy, innerR, endA, startA, true);
-      ctx.closePath();
-      ctx.fillStyle = BG[_hovIdx];
-      ctx.globalAlpha = 0.92;
-      ctx.fill();
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-
-      // 섹터 중앙에 레이블
-      const midA   = (startA + endA) / 2;
-      // 반경 55% 지점에 고정 — curR이 maxR까지 늘어도 항상 섹터 안쪽
-      const labelR = curR * 0.55;
-      const lx     = cx + labelR * Math.cos(midA);
-      const ly     = cy + labelR * Math.sin(midA);
-
-      // 섹터의 호 길이 기반으로 폰트 크기 상한 계산
-      const arcSpan    = endA - startA;
-      const arcLen     = arcSpan * labelR;          // 레이블 위치에서의 호 길이(px)
-      const maxFontSz  = Math.max(8, Math.min(22, arcLen * 0.28));
-      const starSz     = Math.round(maxFontSz * _hovT);
-      const cntSz      = Math.round(maxFontSz * 0.78 * _hovT);
-
-      ctx.save();
-      ctx.translate(lx, ly);
-      // 텍스트가 항상 읽기 쉽게: 하단 반원(π~2π)이면 뒤집어 보정
-      let rot = midA - Math.PI / 2;
-      if (midA > Math.PI / 2 && midA < Math.PI * 1.5) rot += Math.PI;
-      ctx.rotate(rot);
-      ctx.textAlign = 'center';
-
-      // 별점
-      ctx.fillStyle = '#fff';
-      ctx.font = `bold ${starSz}px sans-serif`;
-      ctx.shadowColor = 'rgba(0,0,0,.3)';
-      ctx.shadowBlur  = 3;
-      ctx.fillText(STARS[_hovIdx], 0, -cntSz * 0.7);
-
-      // 권수
-      ctx.font = `bold ${cntSz}px Noto Sans KR, sans-serif`;
-      ctx.fillStyle = 'rgba(255,255,255,.92)';
-      ctx.shadowBlur = 2;
-      ctx.fillText(`${buckets[_hovIdx]}권`, 0, starSz * 0.7);
-      ctx.restore();
-
-      ctx.restore();
-    }
+  const total = buckets.reduce((s, v) => s + v, 0);
+  const peak  = total ? buckets.indexOf(Math.max(...buckets)) : -1;   // 가장 많은 점수대
+  const hexA  = (hex, a) => {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`;
   };
 
-  const canvas = document.getElementById('chart-rating');
-
-  // 마우스 이벤트로 호버 인덱스 감지
-  function bindPolarEvents(chart) {
-    // rect 캐시 초기화 + resize/scroll 시 갱신
-    let _polarRect = canvas.getBoundingClientRect();
-    const _refreshPolarRect = () => { _polarRect = canvas.getBoundingClientRect(); };
-    window.addEventListener('resize', _refreshPolarRect, { passive: true });
-    window.addEventListener('scroll', _refreshPolarRect, { passive: true });
-
-    canvas.addEventListener('mousemove', e => {
-      const pts = chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
-      const idx = pts.length ? pts[0].index : -1;
-      if (idx !== _hovIdx) {
-        _hovIdx = idx;
-        const target = idx >= 0 ? 1 : 0;
-        const start  = performance.now();
-        const from   = _hovT;
-        if (_hovRaf) cancelAnimationFrame(_hovRaf);
-        function step(now) {
-          let p = Math.min((now - start) / 200, 1);
-          p = p < 0.5 ? 2*p*p : -1+(4-2*p)*p;
-          _hovT = from + (target - from) * p;
-          chart.draw();
-          if (p < 1) _hovRaf = requestAnimationFrame(step);
-          else _hovRaf = null;
-        }
-        _hovRaf = requestAnimationFrame(step);
-      }
-    });
-    canvas.addEventListener('mouseleave', () => {
-      if (_hovIdx < 0) return;
-      _hovIdx = -1;
-      const start = performance.now();
-      const from  = _hovT;
-      if (_hovRaf) cancelAnimationFrame(_hovRaf);
-      function step(now) {
-        let p = Math.min((now - start) / 200, 1);
-        p = p < 0.5 ? 2*p*p : -1+(4-2*p)*p;
-        _hovT = from * (1 - p);
-        chart.draw();
-        if (p < 1) _hovRaf = requestAnimationFrame(step);
-        else _hovRaf = null;
-      }
-      _hovRaf = requestAnimationFrame(step);
-    });
-  }
-
   if (charts['rating']) charts['rating'].destroy();
-  const chartInst = new Chart(canvas.getContext('2d'), {
+
+  const canvas = document.getElementById('chart-rating');
+  const wrap   = canvas.parentElement;
+  wrap.querySelectorAll('.yr-tip, .yr-pulse').forEach(el => el.remove());
+  const tip = document.createElement('div');
+  tip.className = 'yr-tip';
+  const pulse = document.createElement('div');
+  pulse.className = 'yr-pulse dot';
+  if (peak >= 0) pulse.style.setProperty('--pc', BG[peak]);
+  wrap.append(tip, pulse);
+
+  const firstDraw = !_ratingDrawn;
+  const S = {
+    ready: false,
+    hov: buckets.map(() => 0),   // 섹터별 현재 확장도(0~1)
+    tgt: buckets.map(() => 0),   // 목표 확장도
+    raf: null,
+  };
+
+  const tick = () => {
+    S.raf = null;
+    const chart = charts['rating'];
+    if (!chart || !S.ready) return;
+    let busy = false;
+    S.hov.forEach((v, i) => {
+      const d = S.tgt[i] - v;
+      if (Math.abs(d) > .002) { S.hov[i] = v + d * .22; busy = true; } else S.hov[i] = S.tgt[i];
+    });
+    chart.update('none');
+    if (busy) S.raf = requestAnimationFrame(tick);
+  };
+  const kick = () => { if (S.ready && !S.raf) S.raf = requestAnimationFrame(tick); };
+  const setTarget = idx => { S.tgt = S.tgt.map((_, i) => i === idx ? 1 : 0); kick(); };
+
+  // ── 플러그인: 호버 섹터 확장 오버레이 + 피크 맥박 위치 ──
+  const ratingPlugin = {
+    id: 'ratingEditorial',
+    afterDatasetsDraw(chart) {
+      const { ctx, chartArea } = chart;
+      const meta = chart.getDatasetMeta(0);
+      const maxR = Math.min(chartArea.width, chartArea.height) / 2;
+
+      S.hov.forEach((h, i) => {
+        if (h < .01) return;
+        const el = meta.data[i];
+        if (!el) return;
+        const r = Math.min(maxR, el.outerRadius + 14 * h);      // 부드럽게 스케일업
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(el.x + el.innerRadius * Math.cos(el.startAngle), el.y + el.innerRadius * Math.sin(el.startAngle));
+        ctx.arc(el.x, el.y, r, el.startAngle, el.endAngle);
+        ctx.arc(el.x, el.y, el.innerRadius, el.endAngle, el.startAngle, true);
+        ctx.closePath();
+        ctx.shadowColor = hexA(BG[i], .45 * h);
+        ctx.shadowBlur  = 14 * h;
+        ctx.fillStyle   = hexA(BG[i], .96);
+        ctx.fill();
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = '#fffaf0';
+        ctx.lineWidth   = 2;
+        ctx.stroke();
+        ctx.restore();
+      });
+
+      // 가장 많은 점수대 끝에 CSS 맥박
+      const pk = peak >= 0 ? meta.data[peak] : null;
+      if (pk && S.ready) {
+        const mid = (pk.startAngle + pk.endAngle) / 2;
+        pulse.style.left = (pk.x + pk.outerRadius * Math.cos(mid)) + 'px';
+        pulse.style.top  = (pk.y + pk.outerRadius * Math.sin(mid)) + 'px';
+        pulse.style.visibility = 'visible';
+      } else {
+        pulse.style.visibility = 'hidden';
+      }
+    },
+    afterDestroy() { if (S.raf) cancelAnimationFrame(S.raf); }
+  };
+
+  charts['rating'] = new Chart(canvas.getContext('2d'), {
     type: 'polarArea',
     data: {
-      labels: ['★ 1점', '★★ 2점', '★★★ 3점', '★★★★ 4점', '★★★★★ 5점'],
+      labels: ['★ 1점대', '★★ 2점대', '★★★ 3점대', '★★★★ 4점대', '★★★★★ 5점대'],
       datasets: [{
         data: buckets,
-        backgroundColor: BG_A,
-        borderColor: BG,
+        // 호버 중이면 나머지 섹터는 살짝 흐려짐
+        backgroundColor: ctx => {
+          const i = ctx.dataIndex, any = Math.max(...S.hov);
+          return hexA(BG[i], .82 - .5 * any * (1 - S.hov[i]));
+        },
+        borderColor: '#fffaf0',
         borderWidth: 1.5,
-        hoverBackgroundColor: BG_A,  // 기본 hover 효과 억제
+        hoverBackgroundColor: ctx => hexA(BG[ctx.dataIndex], .82),
         hoverBorderWidth: 1.5,
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      animation: { duration: 400 },
+      events: [],            // 기본 이벤트 비활성 (커스텀 처리)
+      layout: { padding: 6 },
+      animation: {
+        duration: firstDraw ? 1300 : 400,
+        easing: 'easeOutQuart',
+        animateRotate: true,
+        animateScale: true,
+        // 섹터가 시계 방향으로 하나씩 차례로 펼쳐짐
+        delay: ctx => (firstDraw && ctx.type === 'data' && ctx.mode === 'default') ? ctx.dataIndex * 130 : 0,
+        onComplete: () => {
+          if (S.ready) return;
+          S.ready = true;
+          _ratingDrawn = true;
+          charts['rating'] && charts['rating'].update('none');   // 맥박 위치 동기화
+        }
+      },
       scales: {
         r: {
-          ticks: { display: false },
-          grid: { color: '#e5ddd0' },
+          ticks: { display: false, backdropColor: 'transparent' },
+          grid: { color: 'rgba(122,110,95,.18)', circular: true },
+          angleLines: { display: false },
+          border: { display: false, dash: [2, 6] },
           suggestedMin: 0,
         }
       },
       plugins: {
         legend: {
           position: 'right',
-          labels: { boxWidth: 12, font: { size: 11 }, color: MUTED, padding: 10 }
+          labels: {
+            usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 10, boxHeight: 10,
+            font: { size: 12, weight: '700' }, color: '#4a3f30', padding: 12
+          },
+          // 범례에 올려도 해당 섹터가 확장됨
+          onHover: (e, item) => setTarget(item.index),
+          onLeave: () => setTarget(-1),
         },
-        tooltip: { enabled: false }  // 커스텀 레이블로 대체
+        tooltip: { enabled: false }
       }
     },
-    plugins: [polarHoverPlugin]
+    plugins: [ratingPlugin]
   });
-  charts['rating'] = chartInst;
-  bindPolarEvents(chartInst);
+
+  // ── 마우스: 각도 기반 섹터 판정(가장자리 깜빡임 없음) + 커스텀 툴팁 ──
+  const chart = charts['rating'];
+  const hit = (mx, my) => {
+    const meta = chart.getDatasetMeta(0);
+    const c = meta.data[0];
+    if (!c) return -1;
+    const dx = mx - c.x, dy = my - c.y;
+    const maxR = Math.min(chart.chartArea.width, chart.chartArea.height) / 2;
+    if (Math.hypot(dx, dy) > maxR + 8) return -1;
+    const span = Math.PI * 2 / buckets.length;
+    let rel = Math.atan2(dy, dx) - c.startAngle;
+    rel = ((rel % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    return Math.min(buckets.length - 1, Math.floor(rel / span));
+  };
+
+  const showTip = (i, mx, my) => {
+    const pct = total ? Math.round(buckets[i] / total * 100) : 0;
+    tip.innerHTML =
+      `<div class="yr-tip-year"><span>${STARS[i]}</span>${i === peak ? '<em>MOST</em>' : ''}</div>` +
+      `<div class="yr-tip-count"><b>${buckets[i]}</b>권 · ${i + 1}점대</div>` +
+      `<div class="yr-tip-delta">전체의 ${pct}%</div>`;
+    const half = tip.offsetWidth / 2 + 4;
+    const fresh = !tip.classList.contains('on');
+    if (fresh) tip.style.transition = 'opacity .18s ease';
+    tip.style.left = Math.min(Math.max(mx, half), wrap.clientWidth - half) + 'px';
+    tip.style.top  = my + 'px';
+    if (fresh) { tip.offsetWidth; tip.style.transition = ''; }
+    tip.classList.add('on');
+  };
+
+  canvas.onpointermove = e => {
+    if (!S.ready) return;
+    const i = hit(e.offsetX, e.offsetY);
+    if (i < 0) return canvas.onpointerleave();
+    setTarget(i);
+    showTip(i, e.offsetX, e.offsetY);
+  };
+  canvas.onpointerleave = () => {
+    setTarget(-1);
+    tip.classList.remove('on');
+  };
 }
 
-// ── 연도별 막대 ───────────────────────────────────────────────────────────────
+// ── 연도별 라인/영역 (Drawing 애니메이션 · 크로스헤어 · 에디토리얼 툴팁) ──────────
+let _yearDrawn = false;   // 최초 1회만 Drawing 애니메이션 재생 (연도 필터 변경 시 재생 안 함)
+
 function renderYearBar() {
   const all = getCompleted('all');
   const byYear = {};
   all.forEach(b => { byYear[b.year]=(byYear[b.year]||0)+1; });
-  const years = Object.keys(byYear).sort();
+  const years  = Object.keys(byYear).sort();
+  const values = years.map(y => byYear[y]);
+  const last   = years.length - 1;           // 진행 중(올해) 인덱스
 
   if (charts['year']) charts['year'].destroy();
-  charts['year'] = new Chart(document.getElementById('chart-year').getContext('2d'), {
+
+  const canvas = document.getElementById('chart-year');
+  const wrap   = canvas.parentElement;
+  wrap.querySelectorAll('.yr-tip, .yr-pulse').forEach(el => el.remove());
+
+  const tip = document.createElement('div');
+  tip.className = 'yr-tip';
+  const pulse = document.createElement('div');
+  pulse.className = 'yr-pulse';
+  wrap.append(tip, pulse);
+
+  // ── 인터랙션/애니메이션 상태 ──
+  const S = {
+    lineP: _yearDrawn ? 1 : 0,   // 라인 드로잉 진행도 0→1
+    fillP: _yearDrawn ? 1 : 0,   // 영역 페이드인 진행도 0→1 (라인 완료 후)
+    t0: null, started: _yearDrawn,
+    hov: values.map(() => 0),    // 포인트별 현재 스케일(0~1)
+    tgt: values.map(() => 0),    // 포인트별 목표 스케일
+    mx: null, ca: 0, cat: 0,     // 크로스헤어 x / 현재·목표 알파
+    raf: null, io: null,
+  };
+  const LINE_DELAY = 150, LINE_DUR = 1500, FILL_DUR = 800;
+  const easeInOut = p => p < .5 ? 4*p*p*p : 1 - Math.pow(-2*p + 2, 3) / 2;
+
+  const tick = now => {
+    S.raf = null;
+    const chart = charts['year'];
+    if (!chart) return;
+    let busy = false;
+
+    if (S.started && (S.lineP < 1 || S.fillP < 1)) {
+      if (S.t0 === null) S.t0 = now;
+      const el = now - S.t0 - LINE_DELAY;
+      S.lineP = Math.min(Math.max(el / LINE_DUR, 0), 1);
+      S.fillP = Math.min(Math.max((el - LINE_DUR) / FILL_DUR, 0), 1);
+      if (S.lineP >= 1 && S.fillP >= 1) _yearDrawn = true;
+      busy = true;
+    }
+    S.hov.forEach((v, i) => {                    // 마그네틱 스케일 보간
+      const d = S.tgt[i] - v;
+      if (Math.abs(d) > .002) { S.hov[i] = v + d * .22; busy = true; } else S.hov[i] = S.tgt[i];
+    });
+    const da = S.cat - S.ca;                     // 크로스헤어 페이드
+    if (Math.abs(da) > .01) { S.ca += da * .25; busy = true; } else S.ca = S.cat;
+
+    chart.update('none');                        // 스크립터블 옵션 재평가
+    if (busy) S.raf = requestAnimationFrame(tick);
+  };
+  const kick = () => { if (!S.raf) S.raf = requestAnimationFrame(tick); };
+
+  // ── 플러그인: 드로잉 클립 + 크로스헤어 + 펄스 위치 ──
+  const yearPlugin = {
+    id: 'yearEditorial',
+    beforeDatasetsDraw(chart) {
+      const a = chart.chartArea;
+      chart.ctx.save();
+      chart.ctx.beginPath();
+      const w = S.lineP >= 1 ? chart.width : (a.left - 8) + (a.right - a.left + 8) * easeInOut(S.lineP);
+      chart.ctx.rect(0, 0, w, chart.height);
+      chart.ctx.clip();
+    },
+    afterDatasetsDraw(chart) {
+      chart.ctx.restore();
+      const a = chart.chartArea;
+      if (S.ca > .01 && S.mx !== null) {          // 크로스헤어
+        const x = Math.min(Math.max(S.mx, a.left), a.right);
+        const c = chart.ctx;
+        c.save();
+        c.globalAlpha = S.ca;
+        c.strokeStyle = 'rgba(74,124,111,.28)';
+        c.lineWidth = 1;
+        c.beginPath(); c.moveTo(Math.round(x) + .5, a.top); c.lineTo(Math.round(x) + .5, a.bottom); c.stroke();
+        c.restore();
+      }
+      // 2026(진행 중) 포인트 위 CSS 펄스
+      const pt = chart.getDatasetMeta(0).data[last];
+      if (pt) {
+        pulse.style.left = pt.x + 'px';
+        pulse.style.top  = pt.y + 'px';
+        pulse.style.visibility = S.lineP >= 1 ? 'visible' : 'hidden';
+      }
+    },
+    afterDestroy() {
+      if (S.raf) cancelAnimationFrame(S.raf);
+      if (S.io) S.io.disconnect();
+    }
+  };
+
+  charts['year'] = new Chart(canvas.getContext('2d'), {
     type: 'line',
     data: {
       labels: years,
       datasets: [{
-        data: years.map(y => byYear[y]),
+        data: values,
         fill: true,
+        // 라인 완료 후 틸 그라데이션이 페이드인
         backgroundColor: ctx => {
-          const grad = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.chartArea?.bottom ?? 240);
-          grad.addColorStop(0, TEAL + 'aa');
-          grad.addColorStop(1, TEAL + '0d');
-          return grad;
+          const a = ctx.chart.chartArea;
+          if (!a) return 'rgba(0,0,0,0)';
+          const g = ctx.chart.ctx.createLinearGradient(0, a.top, 0, a.bottom);
+          g.addColorStop(0, `rgba(74,124,111,${(.38 * S.fillP).toFixed(3)})`);
+          g.addColorStop(1, `rgba(74,124,111,${(.02 * S.fillP).toFixed(3)})`);
+          return g;
         },
         borderColor: TEAL,
-        borderWidth: 2.5,
+        borderWidth: 2.25,
+        borderCapStyle: 'round',
+        // 마지막 구간(→ 올해)은 점선
+        segment: { borderDash: ctx => ctx.p1DataIndex === last ? [5, 6] : undefined },
         pointBackgroundColor: years.map((y, i) => {
-          if (i === years.length - 1) return GOLD;          // 마지막 연도(올해) — 골드
+          if (i === last) return GOLD;                       // 진행 중 — 머스터드
           if (activeYear === 'all' || y === activeYear) return TEAL;
           return '#b0a090';
         }),
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointRadius: 7,
-        pointHoverRadius: 9,
+        pointBorderColor: '#faf5e9',
+        pointBorderWidth: ctx => 1 + S.hov[ctx.dataIndex],
+        // 평소엔 아주 작게, 가까워질수록 스케일업
+        pointRadius: ctx => {
+          const base = ctx.dataIndex === last ? 4 : 2;
+          return base + (7.5 - base) * S.hov[ctx.dataIndex];
+        },
+        pointHoverRadius: 0,
         tension: 0.35,
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: false,           // 드로잉은 플러그인이 직접 제어
+      events: [],                 // 기본 hover/tooltip 이벤트 비활성 (커스텀 처리)
+      layout: { padding: { top: 8, right: 10 } },
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: { label: ctx => ` ${ctx.raw}권` }
-        }
+        tooltip: { enabled: false }
       },
       scales: {
         y: {
           beginAtZero: true,
-          ticks: { stepSize: 1, color: MUTED },
-          grid: { color: '#ede7d8' }
+          grace: '8%',
+          ticks: { stepSize: 1, color: MUTED, padding: 8 },
+          border: { display: false, dash: [2, 6] },
+          grid: { color: 'rgba(122,110,95,.14)', drawTicks: false }   // 아주 옅은 점선
         },
         x: {
           grid: { display: false },
+          border: { display: false },
           ticks: { color: MUTED, font: { size: 10 } }
         }
       }
-    }
+    },
+    plugins: [yearPlugin]
   });
+
+  // ── 마우스: 크로스헤어 · 마그네틱 · 커스텀 툴팁 ──
+  const chart = charts['year'];
+  const showTip = i => {
+    const prev = i > 0 ? values[i] - values[i-1] : null;
+    const delta = prev === null ? '첫 기록'
+      : prev === 0 ? '전년과 동일'
+      : `전년 대비 ${prev > 0 ? '▲ +' : '▼ '}${prev}권`;
+    const cls = prev > 0 ? 'up' : prev < 0 ? 'down' : '';
+    tip.innerHTML =
+      `<div class="yr-tip-year"><span>${years[i]}</span>${i === last ? '<em>ONGOING</em>' : ''}</div>` +
+      `<div class="yr-tip-count"><b>${values[i]}</b>권 완독</div>` +
+      `<div class="yr-tip-delta ${cls}">${delta}</div>`;
+    const pt = chart.getDatasetMeta(0).data[i];
+    const half = tip.offsetWidth / 2 + 4;
+    const fresh = !tip.classList.contains('on');
+    if (fresh) tip.style.transition = 'opacity .18s ease';   // 첫 등장 시 위치 이동 애니메이션 생략
+    tip.style.left = Math.min(Math.max(pt.x, half), wrap.clientWidth - half) + 'px';
+    tip.style.top  = pt.y + 'px';
+    if (fresh) { tip.offsetWidth; tip.style.transition = ''; }
+    tip.classList.add('on');
+  };
+
+  canvas.onmousemove = e => {
+    if (S.lineP < 1) return;
+    const a = chart.chartArea;
+    const mx = e.offsetX, my = e.offsetY;
+    if (mx < a.left - 10 || mx > a.right + 10 || my < a.top - 10 || my > a.bottom + 10) return canvas.onmouseleave();
+    S.mx = mx; S.cat = 1;
+    const xs = chart.getDatasetMeta(0).data.map(p => p.x);
+    const spacing = xs.length > 1 ? (xs[xs.length-1] - xs[0]) / (xs.length - 1) : 80;
+    const R = Math.max(28, Math.min(72, spacing * .55));          // 자석 반경
+    let near = 0;
+    xs.forEach((x, i) => {
+      const w = Math.max(0, 1 - Math.abs(x - mx) / R);
+      S.tgt[i] = w * w * (3 - 2 * w);                              // smoothstep
+      if (Math.abs(x - mx) < Math.abs(xs[near] - mx)) near = i;
+    });
+    showTip(near);
+    kick();
+  };
+  canvas.onmouseleave = () => {
+    S.cat = 0; S.tgt.fill(0);
+    tip.classList.remove('on');
+    kick();
+  };
+
+  kick();   // chartArea 확정 후 그라데이션/펄스 위치 1회 동기화
+
+  // ── 최초 진입: 화면에 보일 때 Drawing 시작 ──
+  if (!S.started) {
+    const go = () => { S.started = true; kick(); };
+    if ('IntersectionObserver' in window) {
+      S.io = new IntersectionObserver(es => {
+        if (es.some(en => en.isIntersecting)) { S.io.disconnect(); go(); }
+      }, { threshold: .35 });
+      S.io.observe(canvas);
+    } else go();
+  }
 }
 
 // ── 평점 vs 평균 비교 ─────────────────────────────────────────────────────────
@@ -3739,14 +4011,16 @@ function renderRatingCompare(books) {
     });
   });
 
-  // 목록 바깥 클릭 시 고정 해제
-  document.addEventListener('click', e => {
+  // 목록 바깥 클릭 시 고정 해제 (재렌더 시 이전 리스너 해제)
+  if (window._dvDocClick) document.removeEventListener('click', window._dvDocClick, { capture: true });
+  window._dvDocClick = e => {
     if (lockedLi && !list.contains(e.target) && !document.getElementById('memo-modal').contains(e.target)) {
       lockedLi.classList.remove('locked');
       lockedLi = null;
       inspReset();
     }
-  }, { capture: true });
+  };
+  document.addEventListener('click', window._dvDocClick, { capture: true });
 
   // 초기 상태 보장
   inspReset();
@@ -4070,12 +4344,14 @@ function renderBookshelf(allFilteredData) {
       startX = e.pageX - vp.offsetLeft;
       scrollLeft = vp.scrollLeft;
     });
-    window.addEventListener('mouseup', () => {
+    if (window._railMouseUp) window.removeEventListener('mouseup', window._railMouseUp);
+    window._railMouseUp = () => {
       if (isDown) {
         isDown = false;
         vp.classList.remove('is-dragging');
       }
-    });
+    };
+    window.addEventListener('mouseup', window._railMouseUp);
     vp.addEventListener('mousemove', e => {
       if (!isDown) return;
       e.preventDefault();
@@ -4186,8 +4462,8 @@ function renderTable() {
   });
   const total = data.length;
 
-  // 1. 엔들리스 서재 뷰 렌더링 (전체 데이터가 하나의 럭셔리 레일로 진열)
-  renderBookshelf(data);
+  // 1. 엔들리스 서재 뷰 렌더링 (보이는 뷰만 그림 — 뷰 전환 시 switchBookView가 다시 호출)
+  if (currentBookView === 'shelf') renderBookshelf(data);
 
   // 2. 표 목록 뷰 렌더링 (기존 20권 페이징)
   const totalPages = Math.max(1, Math.ceil(total/PAGE_SIZE));
@@ -4220,7 +4496,7 @@ function renderTable() {
   window._memoPage = page;
 
   const bookTbody = document.getElementById('book-table-body');
-  if (bookTbody) {
+  if (bookTbody && currentBookView === 'table') {
     bookTbody.innerHTML = page.map((b, i) => {
       const bc  = majorBadgeMap[b.major] || 'muted';
       const med = b.medium === '전자책'
@@ -4253,7 +4529,7 @@ function renderTable() {
     });
   }
 
-  renderPagination(totalPages);
+  if (currentBookView === 'table') renderPagination(totalPages);
 }
 
 function scrollToTableTop() {
@@ -4346,11 +4622,12 @@ function populateFilters() {
 }
 
 // ── 이벤트 ────────────────────────────────────────────────────────────────────
-document.getElementById('search-input').addEventListener('input',  ()=>{currentPage=1;renderTable();});
+const debounce = (fn, ms) => { let id; return (...a) => { clearTimeout(id); id = setTimeout(() => fn(...a), ms); }; };
+document.getElementById('search-input').addEventListener('input',  debounce(()=>{currentPage=1;renderTable();}, 150));
 document.getElementById('filter-major').addEventListener('change', ()=>{currentPage=1;renderTable();});
 document.getElementById('filter-medium').addEventListener('change',()=>{currentPage=1;renderTable();});
 document.getElementById('filter-status').addEventListener('change',()=>{currentPage=1;renderAll();});
-window.addEventListener('resize', ()=>{ const b=getCompleted(activeYear); renderTimeline(b); renderArc(b); });
+window.addEventListener('resize', debounce(()=>{ const b=getCompleted(activeYear); renderTimeline(b); renderArc(b); }, 200));
 
 // ── 시작 ──────────────────────────────────────────────────────────────────────
 loadData();
