@@ -190,9 +190,110 @@
     /* ── 타임라인 ── */
     .timeline-wrap {
       overflow-x: auto;
-      padding-bottom: 8px;
+      padding: 10px 0 14px;
+      /* [요구사항 3] 가로 스크롤 인지 힌트: 양쪽 가장자리 페이드아웃 그라데이션 */
+      -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+      mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
     }
-    #timeline-svg { display: block; min-width: 700px; }
+    #timeline-svg {
+      display: block;
+      min-width: 760px;
+    }
+
+    /* [요구사항 1 & 2] 데이터 밀집도 최적화(Blend Mode) 및 Focus & Dim 전환 트랜지션 */
+    .tl-dot {
+      mix-blend-mode: multiply;
+      transform-box: fill-box;
+      transform-origin: center;
+      transition: transform .22s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .2s ease, stroke .2s ease, stroke-width .2s ease;
+      cursor: pointer;
+      opacity: 0.82;
+    }
+
+    /* [요구사항 2] Focus & Dim 시선 집중 효과 */
+    #timeline-svg.has-focus .tl-dot {
+      opacity: 0.15 !important;
+    }
+    #timeline-svg.has-focus .tl-dot.is-focused {
+      opacity: 0.95 !important;
+      transform: scale(1.3);
+      stroke: #ffffff;
+      stroke-width: 2.2px;
+    }
+    #timeline-svg.has-focus .tl-dot.is-locked {
+      opacity: 1 !important;
+      transform: scale(1.35);
+      stroke: var(--gold);
+      stroke-width: 2.8px;
+    }
+
+    /* ── 타임라인 가장자리 자동 스크롤 화살표 힌트 (전체 높이 확장) ── */
+    .tl-edge-arrow {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 54px;
+      display: flex;
+      align-items: center;
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity .25s ease, background .25s ease;
+      color: var(--teal);
+    }
+    .tl-edge-arrow.left {
+      left: 0;
+      background: linear-gradient(to right, rgba(250,247,242,.92) 0%, rgba(250,247,242,.55) 60%, transparent 100%);
+      border-radius: var(--radius) 0 0 var(--radius);
+      padding-left: 8px;
+      justify-content: flex-start;
+    }
+    .tl-edge-arrow.right {
+      right: 0;
+      background: linear-gradient(to left, rgba(250,247,242,.92) 0%, rgba(250,247,242,.55) 60%, transparent 100%);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding-right: 8px;
+      justify-content: flex-end;
+    }
+    .tl-edge-arrow.visible {
+      opacity: 0.45;
+    }
+    .tl-edge-arrow.active {
+      opacity: 0.95;
+    }
+    .tl-edge-arrow.left.active {
+      background: linear-gradient(to right, rgba(74,124,111,.16) 0%, rgba(250,247,242,.75) 60%, transparent 100%);
+    }
+    .tl-edge-arrow.right.active {
+      background: linear-gradient(to left, rgba(74,124,111,.16) 0%, rgba(250,247,242,.75) 60%, transparent 100%);
+    }
+    .tl-edge-arrow svg {
+      width: 24px;
+      height: 24px;
+      stroke: currentColor;
+      stroke-width: 2.8;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 1px 3px rgba(44,36,22,.2));
+      transition: transform .2s ease;
+    }
+    .tl-edge-arrow.left.active svg {
+      animation: arrowPulseLeft .7s ease-in-out infinite;
+      transform: scale(1.15);
+    }
+    .tl-edge-arrow.right.active svg {
+      animation: arrowPulseRight .7s ease-in-out infinite;
+      transform: scale(1.15);
+    }
+    @keyframes arrowPulseLeft {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(-4px); }
+    }
+    @keyframes arrowPulseRight {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(4px); }
+    }
 
     /* ── 2열 그리드 ── */
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
@@ -1017,8 +1118,9 @@ function renderKPI(books) {
 // ── 타임라인 (SVG) ────────────────────────────────────────────────────────────
 function renderTimeline(books) {
   const svg = document.getElementById('timeline-svg');
-  const W = svg.parentElement.clientWidth || 860;
-  svg.setAttribute('width', W);
+  const wrap = svg.parentElement;
+  const card = wrap.closest('.card') || wrap;
+  card.style.position = 'relative';
 
   const withDate = books.filter(b => b.year && b.date).map(b => {
     const parts = b.date.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
@@ -1029,70 +1131,133 @@ function renderTimeline(books) {
   if (!withDate.length) { svg.innerHTML = ''; return; }
 
   const minTs = withDate[0].ts, maxTs = withDate[withDate.length-1].ts;
-  const pad = 64, H = 360;
-  const laneY = { '전자책': 118, '종이책': 268 };
+  const startYear = new Date(minTs).getFullYear();
+  const endYear   = new Date(maxTs).getFullYear();
+  const yearSpan  = Math.max(1, endYear - startYear + 1);
+
+  // 화면 밀도를 높인 컴팩트 가로 너비(W) 및 높이 설정
+  const pad = 58, H = 310;
+  const W = Math.max(wrap.clientWidth || 860, yearSpan * 265, withDate.length * 7.5 + pad * 2);
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+
+  const centerY = H / 2; // 중앙축(Spine) Y 좌표 (155px)
   const laneColors = { '전자책': TEAL, '종이책': ORANGE };
   const tsRange = maxTs - minTs || 1;
   const toX = ts => pad + (ts - minTs) / tsRange * (W - pad * 2);
 
-  svg.setAttribute('height', H);
   let html = '';
 
-  // ① 연도/월 눈금선 — 두 레인 사이에만
-  const startYear = new Date(minTs).getFullYear();
-  const endYear   = new Date(maxTs).getFullYear();
+  // ① [요구사항 4] 중앙축(Spine) 단일 실선 배치 (굵직하고 은은한 실선)
+  html += `<line x1="${pad - 12}" y1="${centerY}" x2="${W - pad + 12}" y2="${centerY}"
+    stroke="#d8d0be" stroke-width="2.5" stroke-linecap="round"/>`;
+
+  // ② 연도 및 월 눈금/라벨 배치
   for (let y = startYear; y <= endYear; y++) {
     for (let m = 0; m < 12; m++) {
       const ts = new Date(y, m, 1).getTime();
       if (ts < minTs || ts > maxTs) continue;
       const x = toX(ts);
       const isMajor = m === 0;
-      const lineTop    = laneY['전자책'] + 18;
-      const lineBottom = laneY['종이책'] - 18;
-      html += `<line x1="${x}" y1="${lineTop}" x2="${x}" y2="${lineBottom}"
-        stroke="#c8bfaa" stroke-width="${isMajor ? 1.4 : 0.6}" stroke-opacity="${isMajor ? 0.7 : 0.35}"/>`;
-      const labelY = (laneY['전자책'] + laneY['종이책']) / 2;
-      if (isMajor)
-        html += `<text x="${x}" y="${labelY + 5}" text-anchor="middle" font-size="12" fill="${MUTED}" font-weight="700">${y}</text>`;
-      else if (m % 3 === 0)
-        html += `<text x="${x}" y="${labelY + 5}" text-anchor="middle" font-size="10" fill="${MUTED}" opacity="0.55">${m+1}월</text>`;
+
+      if (isMajor) {
+        // 연도 시작 가이드 세로 점선
+        html += `<line x1="${x.toFixed(1)}" y1="24" x2="${x.toFixed(1)}" y2="${H - 24}"
+          stroke="#d5ccba" stroke-width="1" stroke-dasharray="3,3" stroke-opacity="0.6"/>`;
+        // 중앙 Spine 위의 연도 배지 (배경 박스 + 텍스트)
+        html += `<rect x="${(x - 20).toFixed(1)}" y="${centerY - 10}" width="40" height="20" rx="4"
+          fill="var(--card)" stroke="#d5ccba" stroke-width="1"/>`;
+        html += `<text x="${x.toFixed(1)}" y="${centerY + 4}" text-anchor="middle"
+          font-size="10.5" fill="${MUTED}" font-weight="700">${y}</text>`;
+      } else if (m % 3 === 0) {
+        // 분기 눈금 틱(Tick) 및 월 텍스트
+        html += `<line x1="${x.toFixed(1)}" y1="${centerY - 4}" x2="${x.toFixed(1)}" y2="${centerY + 4}"
+          stroke="#c8bfaa" stroke-width="1.2" stroke-opacity="0.8"/>`;
+        html += `<text x="${x.toFixed(1)}" y="${centerY + 15}" text-anchor="middle"
+          font-size="9" fill="${MUTED}" opacity="0.6">${m + 1}월</text>`;
+      }
     }
   }
 
-  // ② 레인 축선 + 레이블
-  ['전자책', '종이책'].forEach(med => {
-    const y = laneY[med];
-    const col = laneColors[med];
-    html += `<line x1="${pad}" y1="${y}" x2="${W - pad}" y2="${y}"
-      stroke="${col}" stroke-opacity="0.18" stroke-width="1.5" stroke-dasharray="4,4"/>`;
-    html += `<text x="${pad - 10}" y="${y + 5}" text-anchor="end"
-      font-size="13" font-weight="700" fill="${col}">${med}</text>`;
-  });
+  // ③ [요구사항 4] Diverging 레인 레이블 (중앙 Spine 기준 위/아래)
+  html += `<text x="${pad - 16}" y="${centerY - 18}" text-anchor="end"
+    font-size="11.5" font-weight="700" fill="${TEAL}">전자책 ▴</text>`;
+  html += `<text x="${pad - 16}" y="${centerY + 26}" text-anchor="end"
+    font-size="11.5" font-weight="700" fill="${ORANGE}">종이책 ▾</text>`;
 
-  // ③ 책 점 — 겹침 방지 jitter
+  // ④ 정밀 Beeswarm 충돌 회피 알고리즘 & Boundary 방어 (개별 노드 식별 및 클릭 용이성 극대화)
   const placed = { '전자책': [], '종이책': [] };
-  const SPREAD = 18;
-  withDate.forEach(b => {
-    const med   = (b.medium === '전자책' || b.medium === '종이책') ? b.medium : '전자책';
-    const col   = laneColors[med];
-    const baseY = laneY[med];
-    const x     = toX(b.ts);
-    const r     = b.rating >= 4.5 ? 10 : b.rating >= 3.5 ? 7 : 6;
+  const CENTER_GAP = 20;  // 중앙 Spine 및 텍스트 안전 마진 (상하 20px)
+  const TOP_PAD = 20;     // 최상단 경계 한계선
+  const BOT_PAD = H - 20; // 최하단 경계 한계선
 
-    let cy = baseY, level = 0;
-    while (placed[med].some(p => Math.abs(p.x - x) < (r + p.r + 2) && Math.abs(p.cy - cy) < (r + p.r + 1))) {
-      level++;
-      cy = baseY + (level % 2 === 1 ? -1 : 1) * Math.ceil(level / 2) * SPREAD;
+  withDate.forEach(b => {
+    const med = (b.medium === '전자책' || b.medium === '종이책') ? b.medium : '전자책';
+    const col = laneColors[med];
+    let x     = toX(b.ts);
+    const r   = b.rating >= 4.5 ? 7.2 : b.rating >= 3.5 ? 5.5 : 4.2;
+
+    let cy;
+    if (med === '전자책') {
+      // [전자책]: 중앙축(centerY) 위쪽(-Y)으로 차곡차곡 쌓아올리는 정밀 스택
+      const baseLaneY = centerY - CENTER_GAP;
+      cy = baseLaneY - r;
+
+      let attempts = 0;
+      while (attempts < 20) {
+        const collisions = placed['전자책'].filter(p => {
+          const dx = p.x - x;
+          const dy = p.cy - cy;
+          return Math.sqrt(dx * dx + dy * dy) < (r + p.r + 1.8);
+        });
+
+        if (!collisions.length) break;
+
+        const topMost = Math.min(...collisions.map(p => p.cy));
+        cy = topMost - (r + 5.5);
+
+        if (cy < TOP_PAD + r) {
+          x += (attempts % 2 === 0 ? 1 : -1) * (r * 1.5);
+          cy = baseLaneY - r;
+        }
+        attempts++;
+      }
+      cy = Math.max(TOP_PAD + r, Math.min(centerY - CENTER_GAP - r, cy));
+    } else {
+      // [종이책]: 중앙축(centerY) 아래쪽(+Y)으로 차곡차곡 쌓아올리는 정밀 스택
+      const baseLaneY = centerY + CENTER_GAP;
+      cy = baseLaneY + r;
+
+      let attempts = 0;
+      while (attempts < 20) {
+        const collisions = placed['종이책'].filter(p => {
+          const dx = p.x - x;
+          const dy = p.cy - cy;
+          return Math.sqrt(dx * dx + dy * dy) < (r + p.r + 1.8);
+        });
+
+        if (!collisions.length) break;
+
+        const bottomMost = Math.max(...collisions.map(p => p.cy));
+        cy = bottomMost + (r + 5.5);
+
+        if (cy > BOT_PAD - r) {
+          x += (attempts % 2 === 0 ? 1 : -1) * (r * 1.5);
+          cy = baseLaneY + r;
+        }
+        attempts++;
+      }
+      cy = Math.max(centerY + CENTER_GAP + r, Math.min(BOT_PAD - r, cy));
     }
+
     placed[med].push({ x, cy, r });
 
     // data 속성으로 툴팁 정보 저장
     const stars = '★'.repeat(Math.round(b.rating || 0)) + '☆'.repeat(5 - Math.round(b.rating || 0));
     html += `<circle
-      cx="${x.toFixed(1)}" cy="${cy}" r="${r}"
-      fill="${col}" fill-opacity="0.82" stroke="white" stroke-width="1.5"
+      cx="${x.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r}"
+      fill="${col}" stroke="white" stroke-width="1.5"
       class="tl-dot"
-      style="cursor:pointer; transition: r .15s, fill-opacity .15s, stroke-width .15s;"
       data-title="${b.title.replace(/"/g,'&quot;')}"
       data-author="${(b.author||'').replace(/"/g,'&quot;')}"
       data-date="${b.date}"
@@ -1105,12 +1270,8 @@ function renderTimeline(books) {
 
   svg.innerHTML = html;
 
-  // ④ 커스텀 툴팁 (SVG foreignObject 대신 HTML div 사용)
-  const wrap = svg.parentElement;
-  wrap.style.position = 'relative';
-
-  // 툴팁 엘리먼트 (재사용)
-  let tip = wrap.querySelector('.tl-tooltip');
+  // ⑤ 커스텀 툴팁 엘리먼트 (card에 부착하여 마스크 페이드아웃의 영향 배제)
+  let tip = card.querySelector('.tl-tooltip');
   if (!tip) {
     tip = document.createElement('div');
     tip.className = 'tl-tooltip';
@@ -1122,15 +1283,15 @@ function renderTimeline(books) {
       border-radius:10px; min-width:160px; max-width:220px;
       box-shadow:0 6px 20px rgba(44,36,22,.14); z-index:50;
       transition: opacity .12s ease;`;
-    wrap.appendChild(tip);
+    card.appendChild(tip);
   }
 
-  // SVG rect 캐싱 (resize 시 갱신)
+  // 좌표 계산용 rect 캐싱
   let _tlRect = svg.getBoundingClientRect();
-  let _wrapRect = wrap.getBoundingClientRect();
+  let _cardRect = card.getBoundingClientRect();
   const _refreshTlRect = () => {
-    _tlRect  = svg.getBoundingClientRect();
-    _wrapRect = wrap.getBoundingClientRect();
+    _tlRect   = svg.getBoundingClientRect();
+    _cardRect = card.getBoundingClientRect();
   };
   window.addEventListener('resize',  _refreshTlRect, { passive: true });
   window.addEventListener('scroll', _refreshTlRect, { passive: true });
@@ -1139,15 +1300,16 @@ function renderTimeline(books) {
   let lockedDot = null;   // 클릭으로 고정된 dot
 
   function showDotTip(dot) {
+    _refreshTlRect();
     const origR  = parseFloat(dot.getAttribute('r'));
     const cx     = parseFloat(dot.getAttribute('cx'));
     const cy     = parseFloat(dot.getAttribute('cy'));
     const scaleX = _tlRect.width  / parseFloat(svg.getAttribute('width')  || W);
     const scaleY = _tlRect.height / parseFloat(svg.getAttribute('height') || H);
-    let left = (_tlRect.left - _wrapRect.left) + cx * scaleX + origR + 10;
-    let top  = (_tlRect.top  - _wrapRect.top)  + cy * scaleY - 70;
-    if (left + 230 > _wrapRect.width) left -= 230;
-    top = Math.max(4, top);
+    let left = (_tlRect.left - _cardRect.left) + cx * scaleX + origR + 10;
+    let top  = (_tlRect.top  - _cardRect.top)  + cy * scaleY - 70;
+    if (left + 230 > _cardRect.width) left -= 240;
+    top = Math.max(8, top);
 
     const d = dot.dataset;
     const hasMemo = d.memo && d.memo.trim();
@@ -1177,25 +1339,39 @@ function renderTimeline(books) {
     tip.style.top  = top  + 'px';
   }
 
-  allDots.forEach(dot => {
-    const origR = parseFloat(dot.getAttribute('r'));
+  // ⑥ [요구사항 2] Focus & Dim 인터랙션 제어 함수
+  function setFocus(targetDot) {
+    if (!targetDot) {
+      svg.classList.remove('has-focus');
+      allDots.forEach(d => d.classList.remove('is-focused', 'is-locked'));
+      return;
+    }
+    svg.classList.add('has-focus');
+    allDots.forEach(d => {
+      if (d === targetDot) {
+        d.classList.add('is-focused');
+        if (d === lockedDot) d.classList.add('is-locked');
+      } else {
+        d.classList.remove('is-focused', 'is-locked');
+      }
+    });
+  }
 
+  // ⑦ 이벤트 리스너 등록
+  allDots.forEach(dot => {
     dot.addEventListener('mouseenter', () => {
-      if (lockedDot === dot) return;   // 이미 고정된 dot은 hover 무시
-      // 점 확대 + 강조
-      dot.setAttribute('r', origR + 4);
-      dot.setAttribute('fill-opacity', '1');
-      dot.setAttribute('stroke-width', '2.5');
-      allDots.forEach(d => { if (d !== dot && d !== lockedDot) d.setAttribute('fill-opacity', '0.22'); });
+      if (lockedDot && lockedDot !== dot) return; // 고정된 노드가 있으면 호버 변경 방지
+      setFocus(dot);
       showDotTip(dot);
     });
 
     dot.addEventListener('mouseleave', () => {
-      if (lockedDot === dot) return;   // 고정된 dot은 mouseleave 무시
-      dot.setAttribute('r', origR);
-      dot.setAttribute('fill-opacity', lockedDot ? '0.22' : '0.82');
-      dot.setAttribute('stroke-width', '1.5');
-      if (!lockedDot) allDots.forEach(d => d.setAttribute('fill-opacity', '0.82'));
+      if (lockedDot) {
+        setFocus(lockedDot);
+        showDotTip(lockedDot);
+        return;
+      }
+      setFocus(null);
       tip.style.display = 'none';
     });
 
@@ -1204,60 +1380,144 @@ function renderTimeline(books) {
       const d = dot.dataset;
       const hasMemo = d.memo && d.memo.trim();
 
-      // 같은 dot 재클릭 → 고정 해제
+      // 동일 dot 재클릭 시 고정 해제
       if (lockedDot === dot) {
         lockedDot = null;
-        dot.setAttribute('r', origR);
-        dot.setAttribute('stroke', 'white');
-        dot.setAttribute('fill-opacity', '0.82');
-        allDots.forEach(d => d.setAttribute('fill-opacity', '0.82'));
+        setFocus(null);
         tip.style.display = 'none';
         return;
       }
 
-      // 이전 고정 해제
-      if (lockedDot) {
-        const prevR = parseFloat(lockedDot.getAttribute('r')) - 4;
-        lockedDot.setAttribute('r', prevR);
-        lockedDot.setAttribute('stroke', 'white');
-        lockedDot.setAttribute('stroke-width', '1.5');
-      }
+      // 새로운 dot 고정
+      lockedDot = dot;
+      setFocus(dot);
+      showDotTip(dot);
 
-      // 메모 있으면 모달, 없으면 고정만
+      // 메모 모달 열기
       if (hasMemo) {
         openMemo(d.title, d.author, d.memo.replace(/&#10;/g, '\n'));
-        lockedDot = dot;
-        dot.setAttribute('r', origR + 4);
-        dot.setAttribute('fill-opacity', '1');
-        dot.setAttribute('stroke-width', '3');
-        dot.setAttribute('stroke', 'var(--gold)');   // 고정 표시: gold 테두리
-        allDots.forEach(dd => { if (dd !== dot) dd.setAttribute('fill-opacity', '0.22'); });
-        showDotTip(dot);
-      } else {
-        // 메모 없으면 툴팁만 고정
-        lockedDot = dot;
-        dot.setAttribute('r', origR + 4);
-        dot.setAttribute('fill-opacity', '1');
-        dot.setAttribute('stroke-width', '3');
-        dot.setAttribute('stroke', 'var(--gold)');
-        allDots.forEach(dd => { if (dd !== dot) dd.setAttribute('fill-opacity', '0.22'); });
-        showDotTip(dot);
       }
     });
   });
 
-  // 차트 바깥 클릭 → 고정 해제
+  // 차트 바깥 영역 클릭 시 고정 해제
   document.addEventListener('click', () => {
     if (!lockedDot) return;
-    const origR = parseFloat(lockedDot.getAttribute('r')) - 4;
-    lockedDot.setAttribute('r', origR);
-    lockedDot.setAttribute('stroke', 'white');
-    lockedDot.setAttribute('stroke-width', '1.5');
-    lockedDot.setAttribute('fill-opacity', '0.82');
-    allDots.forEach(d => d.setAttribute('fill-opacity', '0.82'));
     lockedDot = null;
+    setFocus(null);
     tip.style.display = 'none';
   });
+
+  // ⑧ 가로 휠 스크롤 지원 (마우스 휠로 타임라인을 좌우로 편리하게 탐색)
+  if (!wrap._wheelBound) {
+    wrap._wheelBound = true;
+    wrap.addEventListener('wheel', e => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && wrap.scrollWidth > wrap.clientWidth) {
+        e.preventDefault();
+        wrap.scrollLeft += e.deltaY;
+      }
+    }, { passive: false });
+  }
+
+  // ⑨ [Edge Auto-Scroll] 화살표 인디케이터 생성 및 마우스 위치 자동 스크롤 인터랙션
+  let arrowLeft = card.querySelector('.tl-edge-arrow.left');
+  let arrowRight = card.querySelector('.tl-edge-arrow.right');
+  if (!arrowLeft) {
+    arrowLeft = document.createElement('div');
+    arrowLeft.className = 'tl-edge-arrow left';
+    arrowLeft.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>`;
+    card.appendChild(arrowLeft);
+  }
+  if (!arrowRight) {
+    arrowRight = document.createElement('div');
+    arrowRight.className = 'tl-edge-arrow right';
+    arrowRight.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+    card.appendChild(arrowRight);
+  }
+
+  const updateArrows = () => {
+    if (wrap.scrollWidth <= wrap.clientWidth + 5) {
+      arrowLeft.classList.remove('visible', 'active');
+      arrowRight.classList.remove('visible', 'active');
+      return;
+    }
+    const sl = wrap.scrollLeft;
+    const maxSl = wrap.scrollWidth - wrap.clientWidth;
+    if (sl > 10) arrowLeft.classList.add('visible');
+    else arrowLeft.classList.remove('visible', 'active');
+
+    if (sl < maxSl - 10) arrowRight.classList.add('visible');
+    else arrowRight.classList.remove('visible', 'active');
+  };
+
+  wrap.addEventListener('scroll', updateArrows, { passive: true });
+
+  // ⑩ [Default Position] 기본 스크롤 위치를 가장 최신 독서 기록(오른쪽 끝)으로 설정
+  requestAnimationFrame(() => {
+    wrap.scrollLeft = wrap.scrollWidth - wrap.clientWidth;
+    updateArrows();
+  });
+  updateArrows();
+
+  if (!wrap._edgeScrollBound) {
+    wrap._edgeScrollBound = true;
+    let autoScrollRaf = null;
+    let scrollSpeed = 0;
+
+    const stepAutoScroll = () => {
+      if (Math.abs(scrollSpeed) > 0.1 && wrap.scrollWidth > wrap.clientWidth) {
+        wrap.scrollLeft += scrollSpeed;
+        _refreshTlRect();
+        updateArrows();
+        if (lockedDot) showDotTip(lockedDot);
+        autoScrollRaf = requestAnimationFrame(stepAutoScroll);
+      } else {
+        autoScrollRaf = null;
+      }
+    };
+
+    wrap.addEventListener('mousemove', e => {
+      if (wrap.scrollWidth <= wrap.clientWidth) return;
+      const rect = wrap.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const edgeThreshold = Math.min(130, rect.width * 0.20); // 양쪽 끝 20% (최대 130px)
+
+      if (x < edgeThreshold && x >= 0) {
+        // 왼쪽 가장자리 근처: 왼쪽으로 자연스럽게 스크롤
+        const intensity = (edgeThreshold - x) / edgeThreshold;
+        scrollSpeed = -Math.pow(intensity, 1.4) * 12;
+        arrowLeft.classList.add('active');
+        arrowRight.classList.remove('active');
+        if (!autoScrollRaf) autoScrollRaf = requestAnimationFrame(stepAutoScroll);
+      } else if (x > rect.width - edgeThreshold && x <= rect.width) {
+        // 오른쪽 가장자리 근처: 오른쪽으로 자연스럽게 스크롤
+        const intensity = (x - (rect.width - edgeThreshold)) / edgeThreshold;
+        scrollSpeed = Math.pow(intensity, 1.4) * 12;
+        arrowRight.classList.add('active');
+        arrowLeft.classList.remove('active');
+        if (!autoScrollRaf) autoScrollRaf = requestAnimationFrame(stepAutoScroll);
+      } else {
+        // 중앙 영역: 부드럽게 정지
+        scrollSpeed = 0;
+        arrowLeft.classList.remove('active');
+        arrowRight.classList.remove('active');
+        if (autoScrollRaf) {
+          cancelAnimationFrame(autoScrollRaf);
+          autoScrollRaf = null;
+        }
+      }
+    });
+
+    wrap.addEventListener('mouseleave', () => {
+      scrollSpeed = 0;
+      arrowLeft.classList.remove('active');
+      arrowRight.classList.remove('active');
+      if (autoScrollRaf) {
+        cancelAnimationFrame(autoScrollRaf);
+        autoScrollRaf = null;
+      }
+    });
+  }
 }
 
 // ── 아크 다이어그램 ────────────────────────────────────────────────────────────
