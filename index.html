@@ -465,6 +465,36 @@
       -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
       mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
     }
+    /* 타임라인 하단 스크롤(드래그) 바 — 베이지 헤어라인 트랙 + 웜 토프 썸, 호버 시 틸 */
+    .timeline-wrap::-webkit-scrollbar {
+      height: 10px;
+    }
+    .timeline-wrap::-webkit-scrollbar-track {
+      margin: 0 6%;
+      background:
+        linear-gradient(to bottom, transparent 4px, #ddd5c0 4px, #ddd5c0 5px, transparent 5px);
+    }
+    .timeline-wrap::-webkit-scrollbar-thumb {
+      background: linear-gradient(to bottom, #d6cdb8 0%, #b9ae95 100%) content-box;
+      border: 2px solid transparent;
+      border-radius: 999px;
+      background-clip: content-box;
+    }
+    .timeline-wrap::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(to bottom, #6aab9a 0%, #4a7c6f 100%) content-box;
+      background-clip: content-box;
+    }
+    .timeline-wrap::-webkit-scrollbar-thumb:active {
+      background: linear-gradient(to bottom, #4a7c6f 0%, #3a645a 100%) content-box;
+      background-clip: content-box;
+    }
+    /* Firefox 등 ::-webkit-scrollbar 미지원 브라우저 */
+    @supports not selector(::-webkit-scrollbar) {
+      .timeline-wrap {
+        scrollbar-width: thin;
+        scrollbar-color: #b9ae95 transparent;
+      }
+    }
     #timeline-svg {
       display: block;
       min-width: 760px;
@@ -965,6 +995,653 @@
     /* ── 아크 다이어그램 ── */
     #arc-svg { display: block; width: 100%; overflow: visible; }
 
+    /* ── 뷰 토글 스위처 ── */
+    .view-toggle-wrap {
+      display: inline-flex;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .view-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 11px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: .74rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .2s ease;
+    }
+    .view-toggle-btn.active {
+      background: var(--teal);
+      color: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    }
+    .view-toggle-btn:hover:not(.active) {
+      color: var(--teal);
+      background: rgba(74,124,111,.08);
+    }
+
+    /* ── 엔들리스 럭셔리 호두나무 북 레일 (Endless Luxury Walnut Book Rail) ── */
+    #bookshelf-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 10px 0 6px;
+      position: relative;
+    }
+    .walnut-stage {
+      position: relative;
+      background: radial-gradient(ellipse at 50% 25%, #fcfbf7 0%, #f4ede0 100%);
+      border: 1px solid #dcd3c0;
+      border-radius: 10px;
+      padding: 32px 0 0;
+      overflow: hidden;
+      box-shadow: inset 0 2px 6px rgba(44,36,22,.04);
+    }
+    /* 가로 스크롤 레일 컨테이너 */
+    .walnut-rail-viewport {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      padding: 38px 48px 0;
+      overflow-x: auto;
+      overflow-y: visible;
+      cursor: grab;
+      user-select: none;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      scroll-behavior: smooth;
+    }
+    .walnut-rail-viewport::-webkit-scrollbar {
+      display: none;
+    }
+    .walnut-rail-viewport.is-dragging {
+      cursor: grabbing;
+      scroll-behavior: auto;
+    }
+
+    /* 호두나무 원목 선반 바닥 (Walnut Wood Plank) */
+    .walnut-wood-plank {
+      height: 16px;
+      background: linear-gradient(180deg, #4a3222 0%, #362214 45%, #24150b 100%);
+      border-radius: 1px;
+      box-shadow: inset 0 1.5px 1px rgba(240, 215, 185, 0.28), 0 6px 18px rgba(20, 12, 8, 0.4);
+      position: relative;
+      z-index: 5;
+    }
+    .walnut-wood-plank::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 0; right: 0;
+      height: 8px;
+      background: linear-gradient(180deg, rgba(20, 12, 8, 0.25) 0%, transparent 100%);
+    }
+
+    /* 좌우 가장자리 페이드 마스크 & 컨트롤러 */
+    .rail-fade-left, .rail-fade-right {
+      position: absolute;
+      top: 0; bottom: 16px;
+      width: 48px;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .rail-fade-left {
+      left: 0;
+      background: linear-gradient(90deg, rgba(244,237,224,.95) 0%, transparent 100%);
+    }
+    .rail-fade-right {
+      right: 0;
+      background: linear-gradient(270deg, rgba(244,237,224,.95) 0%, transparent 100%);
+    }
+
+    /* 가장자리 호버 자동 스크롤 화살표 힌트 (Reading Timeline과 동일 방식) */
+    .rail-edge-arrow {
+      position: absolute;
+      top: 0; bottom: 16px;
+      width: 54px;
+      display: flex;
+      align-items: center;
+      pointer-events: none;
+      z-index: 25;
+      opacity: 0;
+      transition: opacity .25s ease;
+      color: #4a3222;
+    }
+    .rail-edge-arrow.left { left: 0; padding-left: 8px; justify-content: flex-start; }
+    .rail-edge-arrow.right { right: 0; padding-right: 8px; justify-content: flex-end; }
+    .rail-edge-arrow.visible { opacity: 0.45; }
+    .rail-edge-arrow.active { opacity: 0.95; }
+    .rail-edge-arrow svg {
+      width: 24px;
+      height: 24px;
+      stroke: currentColor;
+      stroke-width: 2.8;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 1px 3px rgba(44,36,22,.2));
+    }
+    .rail-edge-arrow.left.active svg { animation: arrowPulseLeft .7s ease-in-out infinite; }
+    .rail-edge-arrow.right.active svg { animation: arrowPulseRight .7s ease-in-out infinite; }
+
+    /* 연도/타임마커 황동 디바이더 (Brass Year Divider) */
+    .brass-year-marker {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px;
+      height: 140px;
+      flex-shrink: 0;
+      margin: 0 8px;
+      user-select: none;
+    }
+    .brass-badge {
+      background: linear-gradient(135deg, #e4c278 0%, #b8860b 50%, #8b6508 100%);
+      color: #1e1308;
+      font-family: 'Playfair Display', serif;
+      font-size: .76rem;
+      font-weight: 800;
+      letter-spacing: .08em;
+      padding: 4px 8px;
+      border-radius: 4px;
+      box-shadow: inset 0 1px 1px rgba(255,255,255,.5), 0 2px 6px rgba(0,0,0,.25);
+      border: 1px solid #7a5400;
+    }
+    .brass-line {
+      width: 2px;
+      height: 70px;
+      background: linear-gradient(180deg, #b8860b 0%, rgba(184,134,11,.15) 100%);
+      margin-top: 6px;
+    }
+
+    /* 하단 가로 트랙바 & 가이드 정보 */
+    .rail-footer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 6px;
+      font-size: .74rem;
+      color: var(--muted);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .rail-track-wrap {
+      flex: 1;
+      max-width: 220px;
+      height: 4px;
+      background: var(--cream);
+      border-radius: 999px;
+      position: relative;
+      overflow: hidden;
+      margin: 0 12px;
+    }
+    .rail-track-thumb {
+      position: absolute;
+      top: 0; bottom: 0;
+      left: 0; width: 20%;
+      background: linear-gradient(90deg, #b8860b, var(--teal));
+      border-radius: 999px;
+      transition: left .08s ease, width .08s ease;
+    }
+
+    /* 책등 (Book Spine) */
+    .book-spine {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: 3px 3px 1px 1px;
+      cursor: pointer;
+      user-select: none;
+      padding: 8px 3px 6px;
+      box-shadow: inset 1px 0 2px rgba(255,255,255,.25), inset -1px 0 3px rgba(0,0,0,.4), 1px 2px 5px rgba(0,0,0,.18);
+      transition: transform .24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .24s cubic-bezier(0.16, 1, 0.3, 1), filter .2s ease;
+      transform-origin: bottom center;
+      flex-shrink: 0;
+    }
+    .book-spine::before {
+      content: '';
+      position: absolute;
+      top: 4px; left: 2px; right: 2px;
+      height: 1px;
+      background: rgba(255,215,0,.45);
+      box-shadow: 0 2px 0 rgba(255,215,0,.35);
+    }
+    .book-spine::after {
+      content: '';
+      position: absolute;
+      bottom: 4px; left: 2px; right: 2px;
+      height: 1px;
+      background: rgba(255,215,0,.45);
+      box-shadow: 0 -2px 0 rgba(255,215,0,.35);
+    }
+
+    .book-spine:hover {
+      transform: translateY(-18px) scale(1.05);
+      z-index: 30;
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.2),
+        inset 0 1px 0 rgba(255,255,255,.4),
+        0 16px 26px rgba(0,0,0,.38);
+      filter: brightness(1.1);
+    }
+
+    .spine-ribbon {
+      position: absolute;
+      top: -6px;
+      width: 14px;
+      height: 16px;
+      background: linear-gradient(135deg, #ffd700, #b8860b);
+      clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 75%, 0 100%);
+      box-shadow: 0 2px 4px rgba(0,0,0,.25);
+      z-index: 3;
+    }
+
+    .spine-title {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      font-family: 'Noto Serif KR', serif;
+      font-size: .68rem;
+      font-weight: 600;
+      color: rgba(255,255,255,.94);
+      letter-spacing: .03em;
+      text-shadow: 0 1px 2px rgba(0,0,0,.45);
+      max-height: 105px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin: auto 0;
+      line-height: 1.1;
+    }
+
+    .spine-bottom {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      margin-top: auto;
+    }
+    .spine-kdc {
+      font-size: .52rem;
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      color: rgba(255,255,255,.6);
+      letter-spacing: .04em;
+    }
+    .spine-rating {
+      font-size: .55rem;
+      color: #ffd700;
+      line-height: 1;
+    }
+
+    /* 플로팅 툴팁 (body에 붙는 fixed 요소 — 레일 overflow에 잘리지 않음) */
+    #spine-float-tip {
+      position: fixed;
+      left: 0; top: 0;
+      background: linear-gradient(160deg, #2b2e33 0%, #16181b 100%);
+      border: 1px solid rgba(233, 213, 154, .35);
+      color: #fbf9f4;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: .68rem;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .15s ease;
+      z-index: 400;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 6px 18px rgba(0,0,0,.35);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    #spine-float-tip.show { opacity: 1; }
+    .st-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: .55rem; font-weight: 700; letter-spacing: .1em;
+      color: #e9d59a; border: 1px solid rgba(233,213,154,.45);
+      border-radius: 999px; padding: 1px 7px 1px 5px;
+    }
+    .st-badge svg { width: 9px; height: 9px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* 전자책 책등 (스페이스 그레이 알루미늄 E-reader) */
+    .book-spine.is-ebook {
+      background:
+        linear-gradient(100deg, rgba(255,255,255,.1) 0%, rgba(255,255,255,0) 28%, rgba(255,255,255,.05) 72%, rgba(255,255,255,.1) 100%),
+        linear-gradient(160deg, #3b3e43 0%, #1c1e21 55%, #2b2e32 100%);
+      border-radius: 5px;
+      padding: 3px;
+      gap: 3px;
+      justify-content: flex-start;
+      margin: 0 3px;
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.12),
+        inset 0 1px 0 rgba(255,255,255,.3),
+        1px 3px 7px rgba(0,0,0,.3);
+    }
+    .book-spine.is-ebook::before {
+      /* 화면 유리 반사광 */
+      top: 3px; left: 3px; right: 3px; bottom: auto;
+      height: 42%;
+      background: linear-gradient(155deg, rgba(255,255,255,.13) 0%, rgba(255,255,255,0) 55%);
+      box-shadow: none;
+      border-radius: 3px 3px 0 0;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .book-spine.is-ebook::after { display: none; }
+    .book-spine.is-ebook:hover {
+      transform: translateY(-18px) scale(1.05);
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.2),
+        inset 0 1px 0 rgba(255,255,255,.4),
+        0 16px 26px rgba(0,0,0,.38);
+      filter: none;
+    }
+    .eb-screen {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 1px 5px;
+      border-radius: 3px;
+      /* 장르색을 깊게 가라앉힌 e-ink 패널 */
+      background:
+        linear-gradient(180deg, rgba(10,12,14,.38) 0%, rgba(10,12,14,.72) 100%),
+        var(--ec);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.55), inset 0 2px 7px rgba(0,0,0,.5);
+      overflow: hidden;
+      transition: filter .24s ease;
+    }
+    /* 미세 e-ink 스캔라인 질감 */
+    .eb-screen::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px);
+      pointer-events: none;
+    }
+    /* 샴페인 골드 헤어라인 (상단 장식) */
+    .eb-screen::before {
+      content: '';
+      position: absolute;
+      top: 5px; left: 28%; right: 28%;
+      height: 1px;
+      background: rgba(233,213,154,.6);
+    }
+    .book-spine.is-ebook:hover .eb-screen { filter: brightness(1.18); }
+    .book-spine.is-ebook .spine-title {
+      font-family: 'Noto Serif KR', serif;
+      color: #f3ead3;
+    }
+    .book-spine.is-ebook .spine-kdc { color: rgba(243,234,211,.6); }
+    .eb-progress {
+      height: 2px;
+      border-radius: 1px;
+      background: rgba(255,255,255,.1);
+      overflow: hidden;
+      flex-shrink: 0;
+      margin: 0 1px 1px;
+    }
+    .eb-progress i { display: block; height: 100%; width: 100%; }
+    .eb-progress.gold i { background: linear-gradient(90deg, #b8962e, #ecd9a0); }
+    .eb-progress.teal i { background: linear-gradient(90deg, #9aa7a3, #d5dcd9); }
+    .eb-progress.gray i { background: #6e7377; }
+    .eb-progress.reading i {
+      width: 55%;
+      background: linear-gradient(90deg, #b8862e 0%, #f3dca4 50%, #b8862e 100%);
+      background-size: 200% 100%;
+      animation: ebReadingShimmer 1.8s linear infinite;
+    }
+    @keyframes ebReadingShimmer {
+      from { background-position: 200% 0; }
+      to   { background-position: 0 0; }
+    }
+
+    /* 읽는 중 책: 책갈피 리본 + 살짝 뽑힌 위치 + 호박색 펄스 */
+    .reading-bookmark {
+      position: absolute;
+      top: -9px;
+      right: 6px;
+      width: 9px;
+      height: 26px;
+      background: linear-gradient(180deg, #e8604a 0%, #b3301f 100%);
+      clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,.3));
+      z-index: 6;
+    }
+    .book-spine.is-reading:not(:hover) {
+      transform: translateY(-8px) rotate(-1.5deg);
+    }
+    .book-spine.is-reading.is-ebook:not(:hover) {
+      transform: translateY(-8px);
+    }
+    .book-spine.is-reading:not(.is-ebook):not(:hover) {
+      animation: readingPulse 2.6s ease-in-out infinite;
+    }
+    @keyframes readingPulse {
+      0%, 100% { box-shadow: inset 1px 0 2px rgba(255,255,255,.25), inset -1px 0 3px rgba(0,0,0,.4), 1px 2px 5px rgba(0,0,0,.18), 0 0 4px rgba(255,170,60,.25); }
+      50%      { box-shadow: inset 1px 0 2px rgba(255,255,255,.25), inset -1px 0 3px rgba(0,0,0,.4), 1px 2px 5px rgba(0,0,0,.18), 0 0 16px rgba(255,170,60,.8); }
+    }
+    /* 일반 종이책: 은은한 골드 펄스 (읽는 중 책보다 약하게) */
+    .book-spine:not(.is-ebook):not(.is-reading):not(:hover) {
+      animation: paperGoldPulse 4.2s ease-in-out infinite;
+    }
+    .book-spine:not(.is-ebook):not(.is-reading):nth-child(3n+1) { animation-delay: -1.4s; }
+    .book-spine:not(.is-ebook):not(.is-reading):nth-child(3n+2) { animation-delay: -2.8s; }
+    @keyframes paperGoldPulse {
+      0%, 100% { box-shadow: inset 1px 0 2px rgba(255,255,255,.25), inset -1px 0 3px rgba(0,0,0,.4), 1px 2px 5px rgba(0,0,0,.18), 0 0 2px rgba(255,215,0,.08); }
+      50%      { box-shadow: inset 1px 0 2px rgba(255,255,255,.25), inset -1px 0 3px rgba(0,0,0,.4), 1px 2px 5px rgba(0,0,0,.18), 0 0 8px rgba(255,215,0,.35); }
+    }
+    #spine-float-tip.reading:not(.ebook) {
+      border: 1px solid rgba(255, 184, 77, .55);
+      box-shadow: 0 0 14px rgba(255, 170, 60, .35), 0 4px 14px rgba(0,0,0,.25);
+    }
+    .st-badges { display: flex; gap: 4px; }
+    .st-badge.reading { color: #ffc66b; border-color: rgba(255,198,107,.55); }
+    .st-title { font-weight: 700; color: #fff; font-size: .72rem; }
+    .st-meta { font-size: .62rem; color: #bdb6a4; }
+
+    /* ── 빈티지 도서관 대출증 모달 (Library Checkout Slip) ── */
+    #library-slip-modal {
+      position: fixed; inset: 0; z-index: 300;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(34,31,28,.65);
+      backdrop-filter: blur(2px);
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s ease;
+      padding: 20px;
+    }
+    #library-slip-modal.open {
+      opacity: 1; pointer-events: all;
+    }
+    .lib-card {
+      background: #fcfaf4;
+      border: 1px solid #dcd4c2;
+      border-radius: 12px;
+      width: 100%; max-width: 540px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      padding: 28px 28px 20px;
+      position: relative;
+      box-shadow: 0 20px 48px rgba(34,31,28,.3), 0 4px 12px rgba(34,31,28,.1);
+      transform: scale(.95) translateY(12px);
+      transition: transform .28s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+    }
+    #library-slip-modal.open .lib-card {
+      transform: scale(1) translateY(0);
+    }
+    .lib-close-btn {
+      position: absolute; top: 18px; right: 18px;
+      background: var(--cream); border: none; cursor: pointer;
+      width: 28px; height: 28px; border-radius: 50%;
+      font-size: 1rem; color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s, color .15s;
+      z-index: 10;
+    }
+    .lib-close-btn:hover { background: var(--border); color: var(--text); }
+
+    .lib-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid rgba(44,36,22,.12);
+      padding-bottom: 12px;
+      padding-right: 36px; /* 닫기 버튼과의 겹침 방지 */
+      margin-bottom: 14px;
+      flex-shrink: 0;
+    }
+    .lib-stamp-box {
+      display: flex;
+      flex-direction: column;
+      border: 1.5px dashed #9e4a3b;
+      padding: 3px 8px;
+      border-radius: 4px;
+      transform: rotate(-2deg);
+      background: rgba(158,74,59,.04);
+    }
+    .lib-stamp-label {
+      font-size: .52rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      color: #9e4a3b;
+    }
+    .lib-stamp-date {
+      font-family: 'Playfair Display', serif;
+      font-size: .84rem;
+      font-weight: 700;
+      color: #9e4a3b;
+    }
+    .lib-kdc-badge {
+      font-size: .7rem;
+      font-weight: 700;
+      color: var(--teal);
+      background: rgba(74,124,111,.1);
+      padding: 3px 9px;
+      border-radius: 999px;
+      letter-spacing: .02em;
+    }
+
+    .lib-book-info {
+      margin-bottom: 14px;
+      flex-shrink: 0;
+    }
+    .lib-title {
+      font-family: 'Playfair Display', 'Noto Serif KR', serif;
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: var(--text);
+      line-height: 1.35;
+      margin-bottom: 5px;
+      word-break: keep-all;
+    }
+    .lib-author-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .76rem;
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+    .lib-author { font-weight: 600; color: #4a4237; }
+    .lib-dot { color: #c4b9a7; }
+    .lib-rating { color: var(--gold); font-weight: 700; }
+
+    .lib-memo-container {
+      background: #fcf9f2;
+      border: 1px solid #e6ded0;
+      border-left: 4px solid var(--teal);
+      border-radius: 4px 8px 8px 4px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 84px;
+      max-height: 280px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(74, 124, 111, 0.35) transparent;
+      box-shadow: inset 0 1px 3px rgba(44,36,22,.03);
+    }
+    .lib-memo-container::-webkit-scrollbar {
+      width: 5px;
+    }
+    .lib-memo-container::-webkit-scrollbar-thumb {
+      background: rgba(74, 124, 111, 0.3);
+      border-radius: 4px;
+    }
+    .lib-memo-container::-webkit-scrollbar-thumb:hover {
+      background: rgba(74, 124, 111, 0.5);
+    }
+    .lib-memo-label {
+      font-size: .62rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      color: var(--teal);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .lib-memo-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(74, 124, 111, 0.15);
+    }
+    .lib-memo-body {
+      font-size: .92rem;
+      line-height: 1.85;
+      color: #1e1b18;
+      font-weight: 450;
+      font-style: normal;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'Noto Sans KR', system-ui, sans-serif;
+      letter-spacing: -.015em;
+    }
+    .lib-memo-empty {
+      font-size: .84rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .lib-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(44,36,22,.08);
+      padding-top: 10px;
+      font-size: .6rem;
+      letter-spacing: .08em;
+      color: #8c8273;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    /* 구형 메모 모달: 대출증 모달로 대체되어 사용하지 않음 (코드 호환용으로 DOM만 유지) */
+    #memo-modal { display: none; }
+
     /* ── 메모 아이콘 ── */
     .memo-btn {
       background: none; border: none; cursor: pointer;
@@ -973,71 +1650,43 @@
       line-height: 1;
     }
     .memo-btn:hover { opacity: 1; background: var(--cream); }
-
-    /* ── 메모 모달 ── */
-    #memo-modal {
-      position: fixed; inset: 0; z-index: 300;
-      display: flex; align-items: flex-end; justify-content: center;
-      background: rgba(44,36,22,.45);
-      opacity: 0; pointer-events: none;
-      transition: opacity .25s ease;
-    }
-    #memo-modal.open {
-      opacity: 1; pointer-events: all;
-    }
-    #memo-panel {
-      background: var(--card);
-      border-radius: 18px 18px 0 0;
-      width: 100%; max-width: 680px;
-      max-height: 75vh;
-      padding: 28px 32px 40px;
-      overflow-y: auto;
-      transform: translateY(32px);
-      transition: transform .28s ease;
-      box-shadow: 0 -4px 32px rgba(44,36,22,.14);
-    }
-    #memo-modal.open #memo-panel { transform: translateY(0); }
-    .memo-panel-header {
-      display: flex; align-items: flex-start;
-      justify-content: space-between; gap: 12px;
-      margin-bottom: 6px;
-    }
-    .memo-panel-title {
-      font-family: 'Noto Serif KR', serif;
-      font-size: 1.05rem; font-weight: 700;
-      color: var(--text); line-height: 1.4;
-    }
-    .memo-panel-author {
-      font-size: .78rem; color: var(--muted); margin-bottom: 18px;
-    }
-    .memo-close {
-      background: var(--cream); border: none; cursor: pointer;
-      width: 28px; height: 28px; border-radius: 50%;
-      font-size: 1rem; color: var(--muted);
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; transition: background .15s;
-    }
-    .memo-close:hover { background: var(--border); }
-    .memo-divider {
-      border: none; border-top: 1px solid var(--border);
-      margin: 0 0 16px;
-    }
-    .memo-body {
-      font-size: .875rem; line-height: 1.85;
-      color: var(--text);
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    /* 메모 없을 때 */
-    .memo-empty {
-      font-size: .85rem; color: var(--muted);
-      font-style: italic;
-    }
   </style>
 </head>
 <body>
 
-<!-- 메모 모달 -->
+<!-- 빈티지 도서관 대출증 모달 (Library Checkout Slip) -->
+<div id="library-slip-modal" role="dialog" aria-modal="true" aria-labelledby="lib-title">
+  <div class="lib-card">
+    <button class="lib-close-btn" id="lib-close-btn" aria-label="닫기">✕</button>
+    <div class="lib-card-header">
+      <div class="lib-stamp-box">
+        <span class="lib-stamp-label">BORROWED & READ</span>
+        <span class="lib-stamp-date" id="lib-date">—</span>
+      </div>
+      <div class="lib-kdc-badge" id="lib-kdc">KDC —</div>
+    </div>
+    <div class="lib-book-info">
+      <h3 class="lib-title" id="lib-title">—</h3>
+      <div class="lib-author-row">
+        <span class="lib-author" id="lib-author">—</span>
+        <span class="lib-dot">·</span>
+        <span class="lib-medium" id="lib-medium">—</span>
+        <span class="lib-dot">·</span>
+        <span class="lib-rating" id="lib-rating">—</span>
+      </div>
+    </div>
+    <div class="lib-memo-container">
+      <div class="lib-memo-label">READING NOTE & MEMO</div>
+      <blockquote class="lib-memo-body" id="lib-memo">“기록된 메모가 없습니다.”</blockquote>
+    </div>
+    <div class="lib-card-footer">
+      <span>CHAECHIEVE ARCHIVE</span>
+      <span id="lib-kdc-path">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- 메모 모달 (호환 유지) -->
 <div id="memo-modal" role="dialog" aria-modal="true" aria-labelledby="memo-panel-title-el">
   <div id="memo-panel">
     <div class="memo-panel-header">
@@ -1202,21 +1851,38 @@
     </div>
   </div>
 
-  <!-- 도서 목록 -->
+  <!-- 도서 목록 & 서재 -->
   <div class="section">
-    <div class="section-title">All Books</div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+      <div class="section-title" style="margin-bottom:0;">All Books</div>
+      <div class="view-toggle-wrap">
+        <button class="view-toggle-btn active" id="btn-view-shelf" data-view="shelf" title="서재 서가 뷰">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          서재 뷰
+        </button>
+        <button class="view-toggle-btn" id="btn-view-table" data-view="table" title="표 목록 뷰">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          목록 뷰
+        </button>
+      </div>
+    </div>
     <div class="card">
       <div class="search-row">
         <input type="text" id="search-input" placeholder="제목 / 저자 검색…" />
         <select id="filter-major"><option value="">모든 주류</option></select>
         <select id="filter-medium"><option value="">모든 매체</option></select>
         <select id="filter-status">
-          <option value="O">완독</option>
-          <option value="X">미완독</option>
           <option value="">전체</option>
+          <option value="O">완독</option>
+          <option value="X">읽는 중</option>
         </select>
       </div>
-      <div class="table-wrap">
+
+      <!-- 서재 서가 뷰 -->
+      <div id="bookshelf-wrap"></div>
+
+      <!-- 표 목록 뷰 -->
+      <div class="table-wrap" id="table-wrap-el" style="display:none;">
         <table>
           <thead>
             <tr>
@@ -1232,6 +1898,7 @@
           <tbody id="book-table-body"></tbody>
         </table>
       </div>
+
       <div class="page-info" id="page-info"></div>
       <div class="pagination" id="pagination"></div>
     </div>
@@ -1243,8 +1910,8 @@
       <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
         <div class="section-title" style="margin-bottom:0;">Reading Timeline</div>
         <div class="tl-mode-toggle" id="tl-mode-toggle">
-          <button class="tl-toggle-btn active" data-mode="medium">매체별</button>
-          <button class="tl-toggle-btn" data-mode="genre">장르별</button>
+          <button class="tl-toggle-btn active" data-mode="genre">장르별</button>
+          <button class="tl-toggle-btn" data-mode="medium">매체별</button>
         </div>
       </div>
       <div class="timeline-legend" id="timeline-legend" aria-label="타임라인 범례">
@@ -1371,7 +2038,7 @@ const MAJOR_COLORS = {
 };
 
 // 타임라인 컬러 모드 상태 ('medium': 매체별, 'genre': 10진 장르별)
-let timelineColorMode = 'medium';
+let timelineColorMode = 'genre';
 // 선택된 장르 필터 상태 (null 또는 '사회과학', '문학' 등)
 let activeTimelineGenre = null;
 
@@ -2085,6 +2752,10 @@ function renderTimeline(books) {
   });
   updateArrows();
 
+  // 화살표 클릭 시 좌우 스크롤 지원
+  arrowLeft.onclick = (e) => { e.stopPropagation(); wrap.scrollBy({ left: -320, behavior: 'smooth' }); };
+  arrowRight.onclick = (e) => { e.stopPropagation(); wrap.scrollBy({ left: 320, behavior: 'smooth' }); };
+
   if (!wrap._edgeScrollBound) {
     wrap._edgeScrollBound = true;
     let autoScrollRaf = null;
@@ -2102,28 +2773,30 @@ function renderTimeline(books) {
       }
     };
 
+    // 타임라인 영역 마우스 호버 위치에 따른 좌우 반응형 가속 스크롤
     wrap.addEventListener('mousemove', e => {
       if (wrap.scrollWidth <= wrap.clientWidth) return;
       const rect = wrap.getBoundingClientRect();
       const x = e.clientX - rect.left;
-      const edgeThreshold = Math.min(130, rect.width * 0.20); // 양쪽 끝 20% (최대 130px)
+      const centerX = rect.width / 2;
+      const deadZone = rect.width * 0.14; // 중앙 14% 정지 영역
 
-      if (x < edgeThreshold && x >= 0) {
-        // 왼쪽 가장자리 근처: 왼쪽으로 자연스럽게 스크롤
-        const intensity = (edgeThreshold - x) / edgeThreshold;
-        scrollSpeed = -Math.pow(intensity, 1.4) * 12;
+      if (x < centerX - deadZone) {
+        // 왼쪽 영역 호버: 마우스가 왼쪽으로 갈수록 점진적 가속
+        const intensity = (centerX - deadZone - x) / (centerX - deadZone);
+        scrollSpeed = -Math.pow(intensity, 1.2) * 14;
         arrowLeft.classList.add('active');
         arrowRight.classList.remove('active');
         if (!autoScrollRaf) autoScrollRaf = requestAnimationFrame(stepAutoScroll);
-      } else if (x > rect.width - edgeThreshold && x <= rect.width) {
-        // 오른쪽 가장자리 근처: 오른쪽으로 자연스럽게 스크롤
-        const intensity = (x - (rect.width - edgeThreshold)) / edgeThreshold;
-        scrollSpeed = Math.pow(intensity, 1.4) * 12;
+      } else if (x > centerX + deadZone) {
+        // 오른쪽 영역 호버: 마우스가 오른쪽으로 갈수록 점진적 가속
+        const intensity = (x - (centerX + deadZone)) / (centerX - deadZone);
+        scrollSpeed = Math.pow(intensity, 1.2) * 14;
         arrowRight.classList.add('active');
         arrowLeft.classList.remove('active');
         if (!autoScrollRaf) autoScrollRaf = requestAnimationFrame(stepAutoScroll);
       } else {
-        // 중앙 영역: 부드럽게 정지
+        // 중앙 정지 영역
         scrollSpeed = 0;
         arrowLeft.classList.remove('active');
         arrowRight.classList.remove('active');
@@ -2142,6 +2815,21 @@ function renderTimeline(books) {
         cancelAnimationFrame(autoScrollRaf);
         autoScrollRaf = null;
       }
+    });
+
+    // 드래그(Grab & Drag) 인터랙션도 완벽 지원
+    let isDown = false, startX = 0, initialScroll = 0;
+    wrap.addEventListener('mousedown', e => {
+      isDown = true;
+      startX = e.pageX - wrap.offsetLeft;
+      initialScroll = wrap.scrollLeft;
+    });
+    window.addEventListener('mouseup', () => { isDown = false; });
+    wrap.addEventListener('mousemove', e => {
+      if (!isDown) return;
+      const x = e.pageX - wrap.offsetLeft;
+      const walk = (x - startX) * 1.5;
+      wrap.scrollLeft = initialScroll - walk;
     });
   }
 }
@@ -3053,31 +3741,106 @@ const majorBadgeMap = { '사회과학':'teal','철학':'gold','문학':'orange',
 
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-// ── 메모 모달 ─────────────────────────────────────────────────────────────────
-function openMemo(title, author, memo) {
-  document.getElementById('memo-panel-title-el').textContent = title;
-  document.getElementById('memo-panel-author-el').textContent = author;
-  document.getElementById('memo-panel-body').innerHTML = memo
-    ? escHtml(memo)
-    : '<span class="memo-empty">메모가 없습니다.</span>';
-  document.getElementById('memo-modal').classList.add('open');
+// ── 도서관 대출증 모달 (Library Checkout Slip) ──────────────────────────────
+function openLibraryCard(b) {
+  if (!b) return;
+  document.getElementById('lib-title').textContent = b.title ? `『${b.title}』` : '—';
+  document.getElementById('lib-author').textContent = b.author ? `${b.author} 저` : '작자 미상';
+  document.getElementById('lib-medium').textContent = b.medium || '종이책';
+  document.getElementById('lib-rating').textContent = b.rating ? `★ ${b.rating.toFixed(1)}` : '평점 없음';
+  document.getElementById('lib-date').textContent = b.date || '—';
+  document.getElementById('lib-kdc').textContent = `KDC ${b.decimal || ''} · ${b.major || '기타'}`;
+  
+  const memoEl = document.getElementById('lib-memo');
+  if (b.memo && b.memo.trim()) {
+    memoEl.textContent = `“${b.memo.trim()}”`;
+    memoEl.className = 'lib-memo-body';
+  } else {
+    memoEl.textContent = '“기록된 독서 메모가 없습니다.”';
+    memoEl.className = 'lib-memo-body lib-memo-empty';
+  }
+
+  const pathParts = [b.major, b.subMajor, b.minor].filter(Boolean);
+  document.getElementById('lib-kdc-path').textContent = pathParts.length ? pathParts.join(' > ') : 'CHAECHIEVE ARCHIVE';
+
+  document.getElementById('library-slip-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+
+function closeLibraryCard() {
+  document.getElementById('library-slip-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ── 메모 모달 (호환) ─────────────────────────────────────────────────────────
+function openMemo(title, author, memo) {
+  const b = allBooks.find(item => item.title === title && item.author === author) || { title, author, memo };
+  openLibraryCard(b);
+}
 function closeMemo() {
+  closeLibraryCard();
   document.getElementById('memo-modal').classList.remove('open');
   document.body.style.overflow = '';
 }
-// 닫기 버튼 + 배경 클릭으로 닫기
+
+// 모달 이벤트 바인딩
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('memo-close-btn').addEventListener('click', closeMemo);
-  document.getElementById('memo-modal').addEventListener('click', e => {
-    if (e.target === document.getElementById('memo-modal')) closeMemo();
-  });
-  // ESC 키로도 닫기
+  const libClose = document.getElementById('lib-close-btn');
+  const libModal = document.getElementById('library-slip-modal');
+  if (libClose) libClose.addEventListener('click', closeLibraryCard);
+  if (libModal) {
+    libModal.addEventListener('click', e => {
+      if (e.target === libModal) closeLibraryCard();
+    });
+  }
+
+  const memoClose = document.getElementById('memo-close-btn');
+  const memoModal = document.getElementById('memo-modal');
+  if (memoClose) memoClose.addEventListener('click', closeMemo);
+  if (memoModal) {
+    memoModal.addEventListener('click', e => {
+      if (e.target === memoModal) closeMemo();
+    });
+  }
+
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeMemo();
+    if (e.key === 'Escape') {
+      closeLibraryCard();
+      closeMemo();
+    }
   });
+
+  // 서재/목록 뷰 토글 스위처 바인딩
+  const btnShelf = document.getElementById('btn-view-shelf');
+  const btnTable = document.getElementById('btn-view-table');
+  if (btnShelf && btnTable) {
+    btnShelf.addEventListener('click', () => switchBookView('shelf'));
+    btnTable.addEventListener('click', () => switchBookView('table'));
+  }
 });
+
+let currentBookView = 'shelf'; // 'shelf' | 'table'
+
+function switchBookView(view) {
+  currentBookView = view;
+  const btnShelf = document.getElementById('btn-view-shelf');
+  const btnTable = document.getElementById('btn-view-table');
+  const shelfWrap = document.getElementById('bookshelf-wrap');
+  const tableWrap = document.getElementById('table-wrap-el');
+
+  if (view === 'shelf') {
+    if (btnShelf) btnShelf.classList.add('active');
+    if (btnTable) btnTable.classList.remove('active');
+    if (shelfWrap) shelfWrap.style.display = 'flex';
+    if (tableWrap) tableWrap.style.display = 'none';
+  } else {
+    if (btnTable) btnTable.classList.add('active');
+    if (btnShelf) btnShelf.classList.remove('active');
+    if (shelfWrap) shelfWrap.style.display = 'none';
+    if (tableWrap) tableWrap.style.display = 'block';
+  }
+  renderTable();
+}
 
 function starsHtml(r) {
   if (!r) return '<span style="color:var(--border)">—</span>';
@@ -3100,6 +3863,286 @@ function sortTable(key) {
   currentPage = 1; renderTable();
 }
 
+// ── 엔들리스 럭셔리 호두나무 북 레일 렌더링 ──────────────────────────────────
+function renderBookshelf(allFilteredData) {
+  const wrap = document.getElementById('bookshelf-wrap');
+  if (!wrap) return;
+
+  if (!allFilteredData.length) {
+    wrap.innerHTML = `<div style="text-align:center;padding:48px 0;color:var(--muted);font-size:.85rem;">서가 레일에 진열된 도서가 없습니다.</div>`;
+    return;
+  }
+
+  // 읽는 중(미완독) 도서를 가장 앞으로 (기존 정렬 순서는 각 그룹 안에서 유지)
+  allFilteredData = [
+    ...allFilteredData.filter(b => b.status !== 'O'),
+    ...allFilteredData.filter(b => b.status === 'O')
+  ];
+
+  // 연도별 타임마커를 삽입하며 레일 아이템 생성
+  let lastYear = null;
+  let unfinishedMarked = false;
+  const railItems = [];
+
+  allFilteredData.forEach((b, idx) => {
+    const isDone = b.status === 'O';
+    if (!isDone) {
+      if (!unfinishedMarked) {
+        unfinishedMarked = true;
+        railItems.push(`
+        <div class="brass-year-marker">
+          <div class="brass-badge">읽는 중</div>
+          <div class="brass-line"></div>
+        </div>
+      `);
+      }
+    }
+    const bookYear = b.year || (b.date ? b.date.match(/\d{4}/)?.[0] : null);
+    if (isDone && bookYear && bookYear !== lastYear && (sortKey === 'date' || !sortKey)) {
+      lastYear = bookYear;
+      railItems.push(`
+        <div class="brass-year-marker">
+          <div class="brass-badge">${escHtml(bookYear)}</div>
+          <div class="brass-line"></div>
+        </div>
+      `);
+    }
+
+    const col = MAJOR_COLORS[b.major] || '#4a7c6f';
+    const is5Star = b.rating === 5;
+    const height = 142 + ((b.title.length * 4) % 24);
+    const width = 32 + ((b.author.length * 3) % 10);
+    const kdcNum = b.decimal ? b.decimal : (b.major ? b.major.slice(0, 2) : '');
+
+    if (b.medium === '전자책') {
+      // 전자책: 태블릿/e-ink 리더기 형태의 책등
+      const progCls = !isDone ? 'reading' : (b.rating >= 4 ? 'gold' : (b.rating >= 3 ? 'teal' : 'gray'));
+      railItems.push(`
+      <div class="book-spine is-ebook${isDone ? '' : ' is-reading'}" style="--ec:${col}; height:${height - 10}px; width:${width - 2}px;" data-book-idx="${idx}">
+        ${is5Star ? '<div class="spine-ribbon" title="명예의 전당 (5.0★)"></div>' : ''}
+        ${isDone ? '' : '<div class="reading-bookmark" title="읽는 중"></div>'}
+        <div class="eb-screen">
+          <div class="spine-title">${escHtml(b.title)}</div>
+          <div class="spine-bottom">
+            <span class="spine-kdc">${escHtml(kdcNum)}</span>
+            <span class="spine-rating">${b.rating ? '★' + b.rating : ''}</span>
+          </div>
+        </div>
+        <div class="eb-progress ${progCls}"><i></i></div>
+      </div>
+      `);
+      return;
+    }
+
+    railItems.push(`
+      <div class="book-spine${isDone ? '' : ' is-reading'}" style="background: linear-gradient(135deg, ${col} 0%, #1e1b18 140%); height:${height}px; width:${width}px;" data-book-idx="${idx}" title="${escHtml(b.title)}">
+        ${is5Star ? '<div class="spine-ribbon" title="명예의 전당 (5.0★)"></div>' : ''}
+        ${isDone ? '' : '<div class="reading-bookmark" title="읽는 중"></div>'}
+        <div class="spine-title">${escHtml(b.title)}</div>
+        <div class="spine-bottom">
+          <span class="spine-kdc">${escHtml(kdcNum)}</span>
+          <span class="spine-rating">${b.rating ? '★' + b.rating : ''}</span>
+        </div>
+      </div>
+    `);
+  });
+
+  wrap.innerHTML = `
+    <div class="walnut-stage">
+      <div class="rail-edge-arrow left" id="rail-arrow-left"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg></div>
+      <div class="rail-edge-arrow right" id="rail-arrow-right"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+      <div class="rail-fade-left"></div>
+      <div class="rail-fade-right"></div>
+      
+      <div class="walnut-rail-viewport" id="walnut-viewport">
+        ${railItems.join('')}
+      </div>
+      
+      <div class="walnut-wood-plank"></div>
+    </div>
+
+    <div class="rail-footer-bar">
+      <span>채카이브 서가 레일 · <strong>총 ${allFilteredData.length}권</strong> 전권 진열</span>
+      <div class="rail-track-wrap">
+        <div class="rail-track-thumb" id="rail-track-thumb"></div>
+      </div>
+      <span>마우스 휠 / 드래그로 탐색</span>
+    </div>
+  `;
+
+  // 플로팅 툴팁 (body 직하위 fixed 요소) + 책등 클릭 이벤트 바인딩 (대출증 팝업)
+  let tip = document.getElementById('spine-float-tip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'spine-float-tip';
+    document.body.appendChild(tip);
+  }
+  let tipSpine = null;
+  const placeTip = () => {
+    if (!tipSpine) return;
+    const r = tipSpine.getBoundingClientRect();
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    // 호버 시 책이 위로 떠오르는 높이(약 26px)를 고려해 위쪽에 배치
+    let top = r.top - th - 30;
+    if (top < 4) top = r.bottom + 8;
+    let left = r.left + r.width / 2 - tw / 2;
+    left = Math.max(6, Math.min(window.innerWidth - tw - 6, left));
+    tip.style.transform = `translate(${left}px, ${top}px)`;
+  };
+  const hideTip = () => { tipSpine = null; tip.classList.remove('show'); };
+  hideTip(); // 재렌더 시 남아있는 툴팁 제거
+
+  wrap.querySelectorAll('.book-spine').forEach(spineEl => {
+    const b = allFilteredData[+spineEl.dataset.bookIdx];
+    spineEl.addEventListener('click', () => {
+      if (b) openLibraryCard(b);
+    });
+    spineEl.addEventListener('mouseenter', () => {
+      if (!b) return;
+      const isEb = b.medium === '전자책';
+      const isReading = b.status !== 'O';
+      tip.classList.toggle('ebook', isEb);
+      tip.classList.toggle('reading', isReading);
+      const badges = (isEb ? `<span class="st-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>E-BOOK</span>` : '')
+        + (isReading ? `<span class="st-badge reading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18l-5-4-5 4z"/></svg>읽는 중</span>` : '');
+      tip.innerHTML = (badges ? `<span class="st-badges">${badges}</span>` : '')
+        + `<span class="st-title">${escHtml(b.title)}</span><span class="st-meta">${escHtml(b.author)} · ${escHtml(b.major || '')} · ★${b.rating || '—'}</span>`;
+      tipSpine = spineEl;
+      placeTip();
+      tip.classList.add('show');
+    });
+    spineEl.addEventListener('mouseleave', hideTip);
+  });
+
+  // 가로 스크롤 & 드래그 인터랙션 바인딩
+  const vp = document.getElementById('walnut-viewport');
+  const thumb = document.getElementById('rail-track-thumb');
+  const arrowL = document.getElementById('rail-arrow-left');
+  const arrowR = document.getElementById('rail-arrow-right');
+
+  if (vp) {
+    // 1. 마우스 휠 가로 스크롤
+    vp.addEventListener('wheel', e => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        vp.scrollLeft += e.deltaY * 1.2;
+      }
+    }, { passive: false });
+
+    // 2. 마우스 드래그 (Grab & Drag)
+    let isDown = false;
+    let startX = 0;
+    let scrollLeft = 0;
+
+    vp.addEventListener('mousedown', e => {
+      isDown = true;
+      vp.classList.add('is-dragging');
+      startX = e.pageX - vp.offsetLeft;
+      scrollLeft = vp.scrollLeft;
+    });
+    window.addEventListener('mouseup', () => {
+      if (isDown) {
+        isDown = false;
+        vp.classList.remove('is-dragging');
+      }
+    });
+    vp.addEventListener('mousemove', e => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - vp.offsetLeft;
+      const walk = (x - startX) * 1.5;
+      vp.scrollLeft = scrollLeft - walk;
+    });
+
+    // 3. 가장자리 호버 자동 스크롤 (Reading Timeline과 동일 방식)
+    let autoScrollRaf = null;
+    let scrollSpeed = 0;
+
+    const updateArrows = () => {
+      if (!arrowL || !arrowR) return;
+      if (vp.scrollWidth <= vp.clientWidth + 5) {
+        arrowL.classList.remove('visible', 'active');
+        arrowR.classList.remove('visible', 'active');
+        return;
+      }
+      const maxSl = vp.scrollWidth - vp.clientWidth;
+      arrowL.classList.toggle('visible', vp.scrollLeft > 10);
+      if (vp.scrollLeft <= 10) arrowL.classList.remove('active');
+      arrowR.classList.toggle('visible', vp.scrollLeft < maxSl - 10);
+      if (vp.scrollLeft >= maxSl - 10) arrowR.classList.remove('active');
+    };
+
+    const stopAutoScroll = () => {
+      scrollSpeed = 0;
+      if (arrowL) arrowL.classList.remove('active');
+      if (arrowR) arrowR.classList.remove('active');
+      if (autoScrollRaf) {
+        cancelAnimationFrame(autoScrollRaf);
+        autoScrollRaf = null;
+      }
+      vp.style.scrollBehavior = '';
+    };
+
+    const stepAutoScroll = () => {
+      if (Math.abs(scrollSpeed) > 0.1 && vp.scrollWidth > vp.clientWidth) {
+        vp.scrollLeft += scrollSpeed;
+        updateArrows();
+        autoScrollRaf = requestAnimationFrame(stepAutoScroll);
+      } else {
+        autoScrollRaf = null;
+      }
+    };
+
+    vp.addEventListener('mousemove', e => {
+      if (isDown || vp.scrollWidth <= vp.clientWidth) return;
+      const rect = vp.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const centerX = rect.width / 2;
+      const deadZone = rect.width * 0.14; // 중앙 14% 정지 영역
+      if (x < centerX - deadZone) {
+        const intensity = (centerX - deadZone - x) / (centerX - deadZone);
+        scrollSpeed = -Math.pow(intensity, 1.2) * 14;
+        if (arrowL) arrowL.classList.add('active');
+        if (arrowR) arrowR.classList.remove('active');
+      } else if (x > centerX + deadZone) {
+        const intensity = (x - (centerX + deadZone)) / (centerX - deadZone);
+        scrollSpeed = Math.pow(intensity, 1.2) * 14;
+        if (arrowR) arrowR.classList.add('active');
+        if (arrowL) arrowL.classList.remove('active');
+      } else {
+        stopAutoScroll();
+        return;
+      }
+      vp.style.scrollBehavior = 'auto';
+      if (!autoScrollRaf) autoScrollRaf = requestAnimationFrame(stepAutoScroll);
+    });
+    vp.addEventListener('mouseleave', stopAutoScroll);
+    vp.addEventListener('mousedown', stopAutoScroll);
+    vp.addEventListener('scroll', updateArrows, { passive: true });
+    vp.addEventListener('scroll', hideTip, { passive: true });
+    setTimeout(updateArrows, 50);
+
+    // 4. 트랙바 연동
+    const updateThumb = () => {
+      if (!thumb) return;
+      const maxScroll = vp.scrollWidth - vp.clientWidth;
+      if (maxScroll <= 0) {
+        thumb.style.width = '100%';
+        thumb.style.left = '0%';
+        return;
+      }
+      const visibleRatio = Math.min(1, vp.clientWidth / vp.scrollWidth);
+      const thumbWidthPercent = Math.max(12, visibleRatio * 100);
+      const scrollPercent = (vp.scrollLeft / maxScroll) * (100 - thumbWidthPercent);
+      thumb.style.width = `${thumbWidthPercent}%`;
+      thumb.style.left = `${Math.max(0, Math.min(100 - thumbWidthPercent, scrollPercent))}%`;
+    };
+
+    vp.addEventListener('scroll', updateThumb);
+    setTimeout(updateThumb, 50);
+  }
+}
+
 function renderTable() {
   let data = getFiltered();
   data.sort((a,b)=>{
@@ -3112,53 +4155,73 @@ function renderTable() {
     return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
   });
   const total = data.length;
+
+  // 1. 엔들리스 서재 뷰 렌더링 (전체 데이터가 하나의 럭셔리 레일로 진열)
+  renderBookshelf(data);
+
+  // 2. 표 목록 뷰 렌더링 (기존 20권 페이징)
   const totalPages = Math.max(1, Math.ceil(total/PAGE_SIZE));
   if (currentPage > totalPages) currentPage = totalPages;
   const start = (currentPage-1)*PAGE_SIZE;
   const page = data.slice(start, start+PAGE_SIZE);
 
+  const pageInfoEl = document.getElementById('page-info');
+  const pagEl = document.getElementById('pagination');
+
+  if (currentBookView === 'shelf') {
+    if (pageInfoEl) pageInfoEl.style.display = 'none';
+    if (pagEl) pagEl.style.display = 'none';
+  } else {
+    if (pageInfoEl) pageInfoEl.style.display = 'block';
+    if (pagEl) pagEl.style.display = 'flex';
+  }
+
   if (total === 0) {
-    document.getElementById('page-info').textContent = '';
-    document.getElementById('book-table-body').innerHTML =
-      `<tr><td colspan="7" style="text-align:center;padding:40px 0;color:var(--muted);font-size:.85rem;">검색 결과가 없습니다.</td></tr>`;
-    document.getElementById('pagination').innerHTML = '';
+    if (pageInfoEl) pageInfoEl.textContent = '';
+    const bookTbody = document.getElementById('book-table-body');
+    if (bookTbody) {
+      bookTbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px 0;color:var(--muted);font-size:.85rem;">검색 결과가 없습니다.</td></tr>`;
+    }
+    if (pagEl) pagEl.innerHTML = '';
     return;
   }
 
-  document.getElementById('page-info').textContent = `${total}권 중 ${start+1}–${Math.min(start+PAGE_SIZE,total)} 표시`;
-  // 페이지 데이터를 _memoPage에 저장 — 버튼 클릭 시 index로 참조
+  if (pageInfoEl) pageInfoEl.textContent = `${total}권 중 ${start+1}–${Math.min(start+PAGE_SIZE,total)} 표시`;
   window._memoPage = page;
 
-  document.getElementById('book-table-body').innerHTML = page.map((b, i) => {
-    const bc  = majorBadgeMap[b.major] || 'muted';
-    const med = b.medium === '전자책'
-      ? `<span class="badge badge-teal">전자책</span>`
-      : `<span class="badge badge-muted">종이책</span>`;
-    const hasMemo = b.memo && b.memo.trim();
-    const memoCell = hasMemo
-      ? `<td style="text-align:center">
-           <button class="memo-btn" data-idx="${i}" title="메모 보기"
-                   aria-label="${escHtml(b.title)} 메모 보기">📝</button>
-         </td>`
-      : `<td></td>`;
-    return `<tr>
-      <td style="color:var(--muted);white-space:nowrap;font-size:.74rem">${escHtml(b.date)}</td>
-      <td><strong>${escHtml(b.title)}</strong></td>
-      <td style="color:var(--muted)">${escHtml(b.author)}</td>
-      <td><span class="badge badge-${bc}">${escHtml(b.major)}</span></td>
-      <td>${med}</td>
-      <td>${starsHtml(b.rating)}</td>
-      ${memoCell}
-    </tr>`;
-  }).join('');
+  const bookTbody = document.getElementById('book-table-body');
+  if (bookTbody) {
+    bookTbody.innerHTML = page.map((b, i) => {
+      const bc  = majorBadgeMap[b.major] || 'muted';
+      const med = b.medium === '전자책'
+        ? `<span class="badge badge-teal">전자책</span>`
+        : `<span class="badge badge-muted">종이책</span>`;
+      const hasMemo = b.memo && b.memo.trim();
+      const memoCell = hasMemo
+        ? `<td style="text-align:center">
+             <button class="memo-btn" data-idx="${i}" title="대출증 & 메모 보기"
+                     aria-label="${escHtml(b.title)} 대출증 보기">📝</button>
+           </td>`
+        : `<td></td>`;
+      return `<tr>
+        <td style="color:var(--muted);white-space:nowrap;font-size:.74rem">${escHtml(b.date)}</td>
+        <td><strong style="cursor:pointer;" class="table-book-title" data-idx="${i}">${escHtml(b.title)}</strong></td>
+        <td style="color:var(--muted)">${escHtml(b.author)}</td>
+        <td><span class="badge badge-${bc}">${escHtml(b.major)}</span></td>
+        <td>${med}</td>
+        <td>${starsHtml(b.rating)}</td>
+        ${memoCell}
+      </tr>`;
+    }).join('');
 
-  // innerHTML 완료 후 이벤트 바인딩 (인라인 onclick 완전 제거)
-  document.querySelectorAll('#book-table-body .memo-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const b = window._memoPage[+btn.dataset.idx];
-      if (b) openMemo(b.title, b.author, b.memo);
+    // 테이블 내 버튼 및 제목 클릭 이벤트 바인딩
+    bookTbody.querySelectorAll('.memo-btn, .table-book-title').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const b = window._memoPage[+btn.dataset.idx];
+        if (b) openLibraryCard(b);
+      });
     });
-  });
+  }
 
   renderPagination(totalPages);
 }
