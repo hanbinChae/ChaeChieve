@@ -238,22 +238,60 @@
     .tl-genre-legend-list {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       flex-wrap: wrap;
     }
     .tl-genre-chip {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      font-size: .7rem;
+      gap: 5px;
+      font-size: .72rem;
       font-weight: 600;
       color: var(--muted);
+      cursor: pointer;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      transition: all .2s ease;
+      user-select: none;
+    }
+    .tl-genre-chip:hover {
+      background: rgba(44,36,22,.06);
+      color: var(--text);
+    }
+    .tl-genre-chip.active {
+      color: var(--text);
+      font-weight: 700;
+      background: var(--card);
+      border-color: var(--border);
+      box-shadow: 0 1px 4px rgba(44,36,22,.12);
+    }
+    .tl-genre-chip.dimmed {
+      opacity: 0.35;
+    }
+    .tl-genre-chip.dimmed:hover {
+      opacity: 0.8;
     }
     .tl-genre-dot {
       width: 7.5px;
       height: 7.5px;
       border-radius: 50%;
       flex-shrink: 0;
+    }
+
+    /* 장르 필터 적용 시 타임라인 노드 Focus & Dim 스타일 */
+    #timeline-svg.has-genre-filter .tl-dot {
+      opacity: 0.12 !important;
+    }
+    #timeline-svg.has-genre-filter .tl-dot.genre-matched {
+      opacity: 0.95 !important;
+      stroke-width: 2px;
+      transform: scale(1.1);
+    }
+    #timeline-svg.has-genre-filter .tl-dot.genre-matched.is-focused {
+      opacity: 1 !important;
+      transform: scale(1.35);
+      stroke-width: 2.6px;
     }
     .tl-leg-item {
       display: inline-flex;
@@ -1097,6 +1135,8 @@ const MAJOR_COLORS = {
 
 // 타임라인 컬러 모드 상태 ('medium': 매체별, 'genre': 10진 장르별)
 let timelineColorMode = 'medium';
+// 선택된 장르 필터 상태 (null 또는 '사회과학', '문학' 등)
+let activeTimelineGenre = null;
 
 function updateTimelineLegend() {
   const legendEl = document.getElementById('timeline-legend');
@@ -1107,12 +1147,50 @@ function updateTimelineLegend() {
       <span class="tl-leg-item"><span class="tl-leg-dot orange"></span>종이책 <span class="tl-leg-arr">▾ 하단</span></span>
     `;
   } else {
-    const chips = Object.entries(MAJOR_COLORS).map(([name, col]) => `
-      <span class="tl-genre-chip">
-        <span class="tl-genre-dot" style="background:${col};"></span>${name}
-      </span>
-    `).join('');
+    const chips = Object.entries(MAJOR_COLORS).map(([name, col]) => {
+      const isActive = activeTimelineGenre === name;
+      const isDimmed = activeTimelineGenre !== null && !isActive;
+      const chipClass = `tl-genre-chip ${isActive ? 'active' : ''} ${isDimmed ? 'dimmed' : ''}`;
+      const activeStyle = isActive ? `style="background:${col}18; border-color:${col};"` : '';
+      return `
+        <span class="${chipClass}" data-genre="${name}" ${activeStyle} title="클릭하여 '${name}' 도서만 강조">
+          <span class="tl-genre-dot" style="background:${col};"></span>${name}
+        </span>
+      `;
+    }).join('');
     legendEl.innerHTML = `<div class="tl-genre-legend-list">${chips}</div>`;
+
+    // 장르 칩 클릭 이벤트 (토글 필터링)
+    legendEl.querySelectorAll('.tl-genre-chip').forEach(chip => {
+      chip.onclick = () => {
+        const genre = chip.dataset.genre;
+        if (activeTimelineGenre === genre) {
+          activeTimelineGenre = null; // 재클릭 시 필터 해제
+        } else {
+          activeTimelineGenre = genre; // 해당 장르 선택
+        }
+        updateTimelineLegend();
+        applyTimelineGenreFilter();
+      };
+    });
+  }
+}
+
+function applyTimelineGenreFilter() {
+  const svg = document.getElementById('timeline-svg');
+  if (!svg) return;
+  if (timelineColorMode !== 'genre' || !activeTimelineGenre) {
+    svg.classList.remove('has-genre-filter');
+    svg.querySelectorAll('.tl-dot').forEach(d => d.classList.remove('genre-matched'));
+  } else {
+    svg.classList.add('has-genre-filter');
+    svg.querySelectorAll('.tl-dot').forEach(d => {
+      if (d.dataset.major === activeTimelineGenre) {
+        d.classList.add('genre-matched');
+      } else {
+        d.classList.remove('genre-matched');
+      }
+    });
   }
 }
 
@@ -1122,6 +1200,7 @@ function bindTimelineToggle() {
       document.querySelectorAll('.tl-toggle-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       timelineColorMode = btn.dataset.mode;
+      activeTimelineGenre = null; // 모드 전환 시 장르 필터 초기화
       updateTimelineLegend();
       renderTimeline(getCompleted(activeYear));
     };
@@ -1415,6 +1494,7 @@ function renderTimeline(books) {
       class="tl-dot"
       data-title="${b.title.replace(/"/g,'&quot;')}"
       data-author="${(b.author||'').replace(/"/g,'&quot;')}"
+      data-major="${(b.major||'').replace(/"/g,'&quot;')}"
       data-date="${b.date}"
       data-rating="${b.rating}"
       data-stars="${stars}"
@@ -1424,6 +1504,7 @@ function renderTimeline(books) {
   });
 
   svg.innerHTML = html;
+  applyTimelineGenreFilter();
 
   // ⑤ 커스텀 툴팁 엘리먼트 (card에 부착하여 마스크 페이드아웃의 영향 배제)
   let tip = card.querySelector('.tl-tooltip');
