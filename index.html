@@ -187,6 +187,103 @@
       letter-spacing: .06em; text-transform: uppercase; margin-right: 4px;
     }
 
+    /* ── 타임라인 헤더 및 고정 범례 ── */
+    .timeline-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .tl-mode-toggle {
+      display: inline-flex;
+      background: rgba(44,36,22,.06);
+      padding: 3px;
+      border-radius: 999px;
+      gap: 3px;
+      border: 1px solid var(--border);
+    }
+    .tl-toggle-btn {
+      border: none;
+      background: transparent;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: .72rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .2s ease;
+    }
+    .tl-toggle-btn:hover {
+      color: var(--text);
+    }
+    .tl-toggle-btn.active {
+      background: var(--card);
+      color: var(--text);
+      box-shadow: 0 1px 4px rgba(44,36,22,.12);
+    }
+    .timeline-legend {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border-radius: 999px;
+      box-shadow: 0 1px 4px rgba(44,36,22,.04);
+      min-height: 28px;
+    }
+    .tl-genre-legend-list {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .tl-genre-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: .7rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .tl-genre-dot {
+      width: 7.5px;
+      height: 7.5px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .tl-leg-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .tl-leg-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .tl-leg-dot.teal {
+      background: var(--teal);
+      box-shadow: 0 0 0 2px rgba(74,124,111,.2);
+    }
+    .tl-leg-dot.orange {
+      background: var(--orange);
+      box-shadow: 0 0 0 2px rgba(200,105,58,.2);
+    }
+    .tl-leg-arr {
+      font-size: .72rem;
+      color: var(--muted);
+      font-weight: 500;
+      margin-left: -1px;
+    }
+
     /* ── 타임라인 ── */
     .timeline-wrap {
       overflow-x: auto;
@@ -867,7 +964,19 @@
 
   <!-- Reading Timeline -->
   <div class="section">
-    <div class="section-title">Reading Timeline</div>
+    <div class="timeline-header-row">
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <div class="section-title" style="margin-bottom:0;">Reading Timeline</div>
+        <div class="tl-mode-toggle" id="tl-mode-toggle">
+          <button class="tl-toggle-btn active" data-mode="medium">매체별</button>
+          <button class="tl-toggle-btn" data-mode="genre">장르별</button>
+        </div>
+      </div>
+      <div class="timeline-legend" id="timeline-legend" aria-label="타임라인 범례">
+        <span class="tl-leg-item"><span class="tl-leg-dot teal"></span>전자책 <span class="tl-leg-arr">▴ 상단</span></span>
+        <span class="tl-leg-item"><span class="tl-leg-dot orange"></span>종이책 <span class="tl-leg-arr">▾ 하단</span></span>
+      </div>
+    </div>
     <div class="card">
       <div class="timeline-wrap">
         <svg id="timeline-svg" height="80"
@@ -979,6 +1088,46 @@ const OLIVE  = '#7a8c4e';
 const MUTED  = '#7a6e5f';
 const PALETTE = [TEAL, ORANGE, GOLD, OLIVE, '#8b6914', '#5d8a9e', '#9e6b5d', '#6b7c4a'];
 
+// 10진 분류별 주류 고유 색상 매핑
+const MAJOR_COLORS = {
+  '사회과학': '#4a7c6f', '철학': '#b8962e', '문학': '#c8693a',
+  '총류': '#7a8c4e', '자연과학': '#5d8a9e', '기술과학': '#8b6e4a',
+  '종교': '#9e7a5d', '역사': '#6b7c9e', '예술': '#8e6b9e', '언어': '#6b9e8e'
+};
+
+// 타임라인 컬러 모드 상태 ('medium': 매체별, 'genre': 10진 장르별)
+let timelineColorMode = 'medium';
+
+function updateTimelineLegend() {
+  const legendEl = document.getElementById('timeline-legend');
+  if (!legendEl) return;
+  if (timelineColorMode === 'medium') {
+    legendEl.innerHTML = `
+      <span class="tl-leg-item"><span class="tl-leg-dot teal"></span>전자책 <span class="tl-leg-arr">▴ 상단</span></span>
+      <span class="tl-leg-item"><span class="tl-leg-dot orange"></span>종이책 <span class="tl-leg-arr">▾ 하단</span></span>
+    `;
+  } else {
+    const chips = Object.entries(MAJOR_COLORS).map(([name, col]) => `
+      <span class="tl-genre-chip">
+        <span class="tl-genre-dot" style="background:${col};"></span>${name}
+      </span>
+    `).join('');
+    legendEl.innerHTML = `<div class="tl-genre-legend-list">${chips}</div>`;
+  }
+}
+
+function bindTimelineToggle() {
+  document.querySelectorAll('.tl-toggle-btn').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.tl-toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      timelineColorMode = btn.dataset.mode;
+      updateTimelineLegend();
+      renderTimeline(getCompleted(activeYear));
+    };
+  });
+}
+
 // ── 데이터 로드 (data.json — GitHub Actions 자동 갱신) ───────────────────────
 async function loadData() {
   setStatus('loading', '데이터를 불러오는 중…');
@@ -1000,6 +1149,8 @@ async function loadData() {
 
     setStatus('ok', `${allBooks.filter(b=>b.status==='O').length}권 · 최종 갱신 ${updatedAt} · <a href="#" onclick="event.preventDefault();loadData()" style="color:var(--teal)">새로고침</a>`);
     document.getElementById('loading-overlay').style.display = 'none';
+    bindTimelineToggle();
+    updateTimelineLegend();
     buildYearFilters(); renderAll();
   } catch(e) {
     setStatus('error', '로드 실패: ' + e.message);
@@ -1193,7 +1344,10 @@ function renderTimeline(books) {
 
   withDate.forEach(b => {
     const med = (b.medium === '전자책' || b.medium === '종이책') ? b.medium : '전자책';
-    const col = laneColors[med];
+    // 모드에 따른 색상 결정 (매체별 2색 vs 10진 주류별 10색)
+    const col = timelineColorMode === 'genre'
+      ? (MAJOR_COLORS[b.major] || (med === '전자책' ? TEAL : ORANGE))
+      : laneColors[med];
     let x     = toX(b.ts);
     // 점 크기 확대 (기존 대비 약 25~30% 확대하여 시인성 및 클릭 편의성 향상)
     const r   = b.rating >= 4.5 ? 9.2 : b.rating >= 3.5 ? 7.2 : 5.6;
@@ -1533,12 +1687,6 @@ let _sbSlices = [];
 let _sbHovered = null;
 let _sbHoverT  = {};
 let _sbCanvasRect = null;   // getBoundingClientRect 캐시
-
-const MAJOR_COLORS = {
-  '사회과학': '#4a7c6f', '철학': '#b8962e', '문학': '#c8693a',
-  '총류': '#7a8c4e', '자연과학': '#5d8a9e', '기술과학': '#8b6e4a',
-  '종교': '#9e7a5d', '역사': '#6b7c9e', '예술': '#8e6b9e', '언어': '#6b9e8e'
-};
 
 function renderArc(books) {
   _sbBooks = books;
