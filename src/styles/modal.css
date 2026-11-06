@@ -1,0 +1,194 @@
+/* ── 빈티지 도서관 대출증 모달 (Library Checkout Slip) ── */
+#library-slip-modal {
+  position: fixed; inset: 0; z-index: 300;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(34,31,28,.65);
+  backdrop-filter: blur(2px);
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s ease;
+  padding: 20px;
+}
+#library-slip-modal.open {
+  opacity: 1; pointer-events: all;
+}
+.lib-card {
+  background: #fcfaf4;
+  border: 1px solid #dcd4c2;
+  border-radius: 12px;
+  width: 100%; max-width: 540px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 28px 20px;
+  position: relative;
+  box-shadow: 0 20px 48px rgba(34,31,28,.3), 0 4px 12px rgba(34,31,28,.1);
+  transform: scale(.95) translateY(12px);
+  transition: transform .28s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+#library-slip-modal.open .lib-card {
+  transform: scale(1) translateY(0);
+}
+.lib-close-btn {
+  position: absolute; top: 18px; right: 18px;
+  background: var(--cream); border: none; cursor: pointer;
+  width: 28px; height: 28px; border-radius: 50%;
+  font-size: 1rem; color: var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s;
+  z-index: 10;
+}
+.lib-close-btn:hover { background: var(--border); color: var(--text); }
+
+.lib-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid rgba(44,36,22,.12);
+  padding-bottom: 12px;
+  padding-right: 36px; /* 닫기 버튼과의 겹침 방지 */
+  margin-bottom: 14px;
+  flex-shrink: 0;
+}
+.lib-stamp-box {
+  display: flex;
+  flex-direction: column;
+  border: 1.5px dashed #9e4a3b;
+  padding: 3px 8px;
+  border-radius: 4px;
+  transform: rotate(-2deg);
+  background: rgba(158,74,59,.04);
+}
+.lib-stamp-label {
+  font-size: .52rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  color: #9e4a3b;
+}
+.lib-stamp-date {
+  font-family: 'Playfair Display', serif;
+  font-size: .84rem;
+  font-weight: 700;
+  color: #9e4a3b;
+}
+.lib-kdc-badge {
+  font-size: .7rem;
+  font-weight: 700;
+  color: var(--teal);
+  background: rgba(74,124,111,.1);
+  padding: 3px 9px;
+  border-radius: 999px;
+  letter-spacing: .02em;
+}
+
+.lib-book-info {
+  margin-bottom: 14px;
+  flex-shrink: 0;
+}
+.lib-title {
+  font-family: 'Playfair Display', 'Noto Serif KR', serif;
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1.35;
+  margin-bottom: 5px;
+  word-break: keep-all;
+}
+.lib-author-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .76rem;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+.lib-author { font-weight: 600; color: #4a4237; }
+.lib-dot { color: #c4b9a7; }
+.lib-rating { color: var(--gold); font-weight: 700; }
+
+.lib-memo-container {
+  background: #fcf9f2;
+  border: 1px solid #e6ded0;
+  border-left: 4px solid var(--teal);
+  border-radius: 4px 8px 8px 4px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 84px;
+  max-height: 280px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(74, 124, 111, 0.35) transparent;
+  box-shadow: inset 0 1px 3px rgba(44,36,22,.03);
+}
+.lib-memo-container::-webkit-scrollbar {
+  width: 5px;
+}
+.lib-memo-container::-webkit-scrollbar-thumb {
+  background: rgba(74, 124, 111, 0.3);
+  border-radius: 4px;
+}
+.lib-memo-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(74, 124, 111, 0.5);
+}
+.lib-memo-label {
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  color: var(--teal);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.lib-memo-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(74, 124, 111, 0.15);
+}
+.lib-memo-body {
+  font-size: .92rem;
+  line-height: 1.85;
+  color: #1e1b18;
+  font-weight: 450;
+  font-style: normal;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
+  letter-spacing: -.015em;
+}
+.lib-memo-empty {
+  font-size: .84rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.lib-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(44,36,22,.08);
+  padding-top: 10px;
+  font-size: .6rem;
+  letter-spacing: .08em;
+  color: #8c8273;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+/* 구형 메모 모달: 대출증 모달로 대체되어 사용하지 않음 (코드 호환용으로 DOM만 유지) */
+#memo-modal { display: none; }
+
+/* ── 메모 아이콘 ── */
+.memo-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 1rem; padding: 2px 4px; border-radius: 4px;
+  opacity: .6; transition: opacity .15s, background .15s;
+  line-height: 1;
+}
+.memo-btn:hover { opacity: 1; background: var(--cream); }

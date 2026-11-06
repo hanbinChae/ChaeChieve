@@ -1,0 +1,216 @@
+/* ── KPI (High-End Luxury Editorial Fixed Cards) ── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border: 1px solid rgba(221, 213, 192, 0.9);
+  border-radius: 12px;
+  background: #faf8f3;
+  margin-bottom: 36px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(44, 36, 22, 0.04);
+}
+.kpi-item {
+  position: relative;
+  padding: 20px 12px 16px;
+  text-align: center;
+  border-right: 1px solid rgba(221, 213, 192, 0.7);
+  cursor: pointer;
+  background: #faf8f3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 194px;
+  overflow: hidden;
+  transition: background-color .35s ease, box-shadow .35s ease;
+}
+.kpi-item:last-child {
+  border-right: none;
+}
+
+/* 카드 배경 일러스트레이션 아트워크 */
+.kpi-illustration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 102px;
+  pointer-events: none;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  opacity: 0.65;
+  transition: opacity .35s ease, transform .4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.kpi-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 호버 시 럭셔리 내부 전환 (레이아웃 크기/위치 변동 완전 제거) */
+.kpi-item:hover,
+.kpi-item:focus-within {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(74, 124, 111, 0.18), 0 8px 24px -4px rgba(44, 36, 22, 0.06);
+}
+.kpi-item:hover .kpi-illustration,
+.kpi-item:focus-within .kpi-illustration {
+  opacity: 0.28;
+  transform: translateY(-4px);
+}
+
+/* 메인 타이포그래피 (숫자 + 라벨) */
+.kpi-primary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  z-index: 2;
+  transform: translateY(18px);
+  transition: transform .38s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.kpi-item:hover .kpi-primary,
+.kpi-item:focus-within .kpi-primary {
+  transform: translateY(0);
+}
+
+.kpi-value {
+  font-family: 'Playfair Display', 'Noto Serif KR', serif;
+  font-size: 2.45rem;
+  font-weight: 900;
+  color: #1a1714;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+.kpi-label {
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
+  font-size: .64rem;
+  color: #72685a;
+  margin-top: 5px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+/* 하단 인사이트 영역 (스무스 리빌 서랍) */
+.kpi-drawer {
+  width: 86%;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(74, 124, 111, 0.16);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .32s ease, transform .38s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  z-index: 2;
+}
+.kpi-item:hover .kpi-drawer,
+.kpi-item:focus-within .kpi-drawer {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* 인사이트 행 레이아웃 (라벨 | 값) */
+.insight-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  font-size: .68rem;
+  padding: 0 2px;
+}
+.insight-label {
+  color: #665d50;
+  font-weight: 600;
+  font-size: .63rem;
+  white-space: nowrap;
+  min-width: 48px;
+  text-align: left;
+}
+.insight-divider {
+  color: rgba(74, 124, 111, 0.3);
+  margin: 0 6px;
+  font-size: .68rem;
+  font-weight: 300;
+}
+.insight-val {
+  color: #2c5e50;
+  font-weight: 800;
+  font-size: .68rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+  flex: 1;
+}
+.insight-empty {
+  font-size: .68rem;
+  color: var(--muted);
+  text-align: center;
+  width: 100%;
+  padding: 2px 0;
+}
+
+@media (max-width: 768px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .kpi-item { height: 180px; padding: 16px 8px 14px; }
+  .kpi-item:nth-child(2) { border-right: none; }
+  .kpi-item:nth-child(1), .kpi-item:nth-child(2) { border-bottom: 1px solid rgba(221, 213, 192, 0.7); }
+}
+
+/* ── 섹션 공통 ── */
+.section { margin-bottom: 40px; }
+.section-title {
+  font-family: 'Playfair Display', 'Noto Serif KR', serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--teal);
+  display: inline-block;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+/* ── 연도 필터 ── */
+.year-filter {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; align-items: center;
+}
+.year-filter .flabel { font-size: .76rem; color: var(--muted); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-right: 4px; }
+.ybtn {
+  padding: 5px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  font-size: .78rem;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s;
+}
+.ybtn:hover { border-color: var(--teal); color: var(--teal); }
+.ybtn.active { background: var(--teal); color: #fff; border-color: var(--teal); }
+
+/* ── 랭킹 섹션 연도 피커 ── */
+.ranking-year-filter {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  margin-bottom: -24px; /* two-col 섹션과 간격 조정 */
+}
+.ranking-year-filter .flabel {
+  font-size: .76rem; color: var(--muted); font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase; margin-right: 4px;
+}

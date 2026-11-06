@@ -1,0 +1,109 @@
+/* ── 도서 목록 테이블 ── */
+.search-row {
+  display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center;
+}
+.search-row input, .search-row select {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: .8rem;
+  outline: none;
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+}
+.search-row input { flex: 1; min-width: 160px; }
+.search-row input:focus, .search-row select:focus { border-color: var(--teal); }
+
+.table-wrap { overflow-x: auto; min-height: 480px; }
+table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+thead th {
+  text-align: left; padding: 9px 10px;
+  border-bottom: 2px solid var(--border);
+  color: var(--muted); font-weight: 700;
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .05em;
+  white-space: nowrap; cursor: pointer; user-select: none;
+}
+thead th:hover { color: var(--teal); }
+tbody tr { border-bottom: 1px solid var(--cream); }
+tbody tr:hover { background: var(--cream); }
+tbody td { padding: 8px 10px; vertical-align: middle; }
+
+.badge {
+  display: inline-block; padding: 2px 8px;
+  border-radius: 999px; font-size: .7rem; font-weight: 600;
+}
+.badge-teal   { background: rgba(74,124,111,.12); color: var(--teal); }
+.badge-orange { background: rgba(200,105,58,.12);  color: var(--orange); }
+.badge-gold   { background: rgba(184,150,46,.12);  color: var(--gold); }
+.badge-olive  { background: rgba(122,140,78,.12);  color: var(--olive); }
+.badge-muted  { background: var(--cream); color: var(--muted); }
+
+.star-fill { color: var(--gold); }
+.star-empty { color: var(--border); }
+
+.page-info { font-size: .76rem; color: var(--muted); margin-top: 12px; }
+.pagination { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+.page-btn {
+  padding: 5px 10px; min-width: 32px; height: 30px; border: 1px solid var(--border);
+  border-radius: 6px; font-size: .74rem; cursor: pointer;
+  background: transparent; color: var(--muted); font-family: inherit;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all .15s ease;
+}
+.page-btn.active { background: var(--teal); color: #fff; border-color: var(--teal); font-weight: 700; }
+.page-btn:hover:not(.active):not(:disabled) { border-color: var(--teal); color: var(--teal); background: rgba(74,124,111,.06); }
+.page-btn:disabled { opacity: .4; cursor: not-allowed; }
+.page-ellipsis { font-size: .74rem; color: var(--muted); padding: 0 4px; user-select: none; }
+
+/* ── Top Books ── */
+.top-list { list-style: none; }
+.top-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid var(--cream);
+}
+.top-item:last-child { border-bottom: none; }
+.top-rank { font-size: .72rem; font-weight: 800; color: var(--muted); min-width: 18px; padding-top: 2px; }
+.top-rank.r1 { color: var(--gold); }
+.top-rank.r2 { color: #94a3b8; }
+.top-rank.r3 { color: #b45309; }
+.top-title { font-size: .82rem; font-weight: 600; line-height: 1.3; }
+.top-author { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+.top-rating { margin-left: auto; font-size: .8rem; font-weight: 700; color: var(--gold); white-space: nowrap; }
+
+/* ── 아크 다이어그램 ── */
+#arc-svg { display: block; width: 100%; overflow: visible; }
+
+/* ── 뷰 토글 스위처 ── */
+.view-toggle-wrap {
+  display: inline-flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+.view-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: .74rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .2s ease;
+}
+.view-toggle-btn.active {
+  background: var(--teal);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+.view-toggle-btn:hover:not(.active) {
+  color: var(--teal);
+  background: rgba(74,124,111,.08);
+}

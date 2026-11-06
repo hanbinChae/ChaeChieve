@@ -1,0 +1,124 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #f5f0e8;
+  --card:     #faf7f2;
+  --border:   #ddd5c0;
+  --text:     #2c2416;
+  --muted:    #7a6e5f;
+  --teal:     #4a7c6f;
+  --teal2:    #6aab9a;
+  --orange:   #c8693a;
+  --gold:     #b8962e;
+  --olive:    #7a8c4e;
+  --cream:    #e8e0d0;
+  --radius:   10px;
+  --shadow:   0 2px 16px rgba(44,36,22,.08);
+}
+
+body {
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ── 로딩 ── */
+#loading-overlay {
+  position: fixed; inset: 0;
+  background: rgba(245,240,232,.95);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200; flex-direction: column; gap: 16px;
+}
+.spinner {
+  width: 44px; height: 44px;
+  border: 3px solid var(--border);
+  border-top-color: var(--teal);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#loading-overlay p { color: var(--muted); font-size: .9rem; }
+
+/* ── 헤더 ── */
+.dash-header {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  text-align: center;
+  padding: 76px 24px 56px;
+  border-bottom: 1px solid var(--border);
+  /* Aurora 뒤에 깔리는 딥 포레스트 블랙 (WebGL 미지원 시 폴백도 겸함) */
+  background: linear-gradient(180deg, #0a1411 0%, #0f1f1a 55%, #13261f 100%);
+}
+/* Aurora 캔버스 (투명 배경 — 위 그라데이션 위에 오로라만 합성) */
+#aurora-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  display: block;
+}
+/* 중앙 텍스트 가독성을 위한 은은한 어두운 비네트 */
+.dash-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 55% 70% at 50% 58%, rgba(6,14,11,.5) 0%, rgba(6,14,11,0) 100%);
+}
+.dash-header > *:not(canvas) { position: relative; z-index: 1; }
+.dash-header .eyebrow {
+  font-size: .78rem;
+  color: rgba(255,255,255,.72);
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  text-shadow: 0 1px 8px rgba(20,34,30,.35);
+}
+.dash-header h1 {
+  font-family: 'Playfair Display', 'Noto Serif KR', serif;
+  font-size: clamp(2.2rem, 6vw, 3.8rem);
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1.1;
+  letter-spacing: -.01em;
+  text-shadow: 0 2px 18px rgba(20,34,30,.4);
+}
+.dash-header h1 em { color: #eed58c; font-style: normal; }
+.dash-header .meta {
+  margin-top: 12px;
+  font-size: .82rem;
+  color: rgba(255,255,255,.7);
+  text-shadow: 0 1px 6px rgba(20,34,30,.35);
+}
+.dash-header .meta a {
+  color: #c4efe2;
+  text-decoration: none;
+  font-weight: 600;
+}
+#status-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 16px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.28);
+  font-size: .76rem;
+  color: rgba(255,255,255,.85);
+  background: rgba(255,255,255,.12);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+#status-badge a { color: #c4efe2 !important; }
+#status-badge .dot {
+  width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.6);
+}
+#status-badge.ok .dot { background: var(--teal2); }
+#status-badge.error .dot { background: var(--orange); }
+#status-badge.loading .dot { background: var(--gold); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── 레이아웃 ── */
+.dash-body { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }

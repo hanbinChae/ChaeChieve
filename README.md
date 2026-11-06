@@ -16,7 +16,7 @@ GitHub Actions (fetch_data.py)
         ↓
 data.json (레포에 커밋)
         ↓
-index.html (GitHub Pages, data.json fetch)
+index.html + src/ (GitHub Pages, data.json fetch)
 ```
 
 - **API Key 없음** — 브라우저에서 직접 외부 API 호출하지 않음
@@ -29,14 +29,44 @@ index.html (GitHub Pages, data.json fetch)
 
 ```
 reading-dashboard/
-├── index.html                       # 대시보드 메인
+├── index.html                       # 마크업 뼈대 + CSS 링크 + <script type="module">
 ├── data.json                        # 독서 데이터 (Actions 자동 갱신)
+├── src/
+│   ├── main.js                      # 진입점: 데이터 로드 → 컴포넌트 렌더 → 이벤트 바인딩
+│   ├── state.js                     # 공유 가변 상태 (연도/정렬/페이지 등) + Chart.js 인스턴스 보관
+│   ├── constants.js                 # DATA_URL, 색상 팔레트, MAJOR_COLORS, PAGE_SIZE
+│   ├── utils.js                     # escHtml, starsHtml, parseBookDate, debounce
+│   ├── styles/
+│   │   ├── global.css               # 변수, 로딩, 헤더, 레이아웃
+│   │   ├── components.css           # KPI 카드, 섹션 공통, 연도 필터, 랭킹 피커
+│   │   ├── charts.css               # 타임라인, 차트 카드, Diverging, Inspector
+│   │   ├── table.css                # 도서 목록 표, Top Books, 뷰 토글
+│   │   ├── bookshelf.css            # 호두나무 북 레일(서재)
+│   │   └── modal.css                # 도서관 대출증 / 메모 모달
+│   ├── data/
+│   │   ├── dataFetcher.js           # data.json 로드, 상태 배지
+│   │   └── statsCalculator.js       # 완독/필터 헬퍼, KPI 기본 지표 계산
+│   └── components/
+│       ├── summaryCards.js          # 요약 카드 + 호버 인사이트
+│       ├── timelineChart.js         # 타임라인 (Diverging SVG, 범례/장르 필터)
+│       ├── donutChart.js            # 장르 선버스트 (드릴다운)
+│       ├── lineChart.js             # 연도별 추이 라인/영역 차트
+│       ├── radarChart.js            # Reading Spectrum 레이더
+│       ├── ratingChart.js           # Star Distribution 폴라 에어리어
+│       ├── ratingCompare.js         # 랭킹 연도 피커 + My Best & Worst
+│       ├── topBooks.js              # Top 10 리스트
+│       ├── bookshelf.js             # 서재(북 레일) 뷰
+│       ├── bookTable.js             # 표 / 페이지네이션 / 필터 / 뷰 전환
+│       ├── modals.js                # 대출증 / 메모 모달
+│       └── auroraHeader.js          # 헤더 Aurora WebGL 배경
 ├── scripts/
 │   └── fetch_data.py                # 데이터 수집 스크립트
 └── .github/
     └── workflows/
         └── update-data.yml          # 자동 갱신 워크플로
 ```
+
+의존 방향은 `main.js → components → data / state / constants / utils` 단방향입니다.
 
 ---
 
@@ -83,10 +113,10 @@ reading-dashboard/
 ## 로컬 개발
 
 ```bash
-# 간단한 로컬 서버 실행 (Python)
+# 레포 루트에서 간단한 로컬 서버 실행 (Python)
 python -m http.server 8080
-# → http://localhost:8080/reading-dashboard/
+# → http://localhost:8080/
 ```
 
-> `file://`로 직접 열면 CORS로 `data.json` 로드가 차단됩니다.  
+> `file://`로 직접 열면 CORS로 `data.json` 로드가 차단되고, ES 모듈(`<script type="module">`)도 로드되지 않습니다.
 > 반드시 로컬 서버를 통해 접속하세요.

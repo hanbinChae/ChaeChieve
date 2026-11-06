@@ -1,0 +1,426 @@
+/* ── 엔들리스 럭셔리 호두나무 북 레일 (Endless Luxury Walnut Book Rail) ── */
+#bookshelf-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 0 6px;
+  position: relative;
+}
+.walnut-stage {
+  position: relative;
+  background: radial-gradient(ellipse at 50% 25%, #fcfbf7 0%, #f4ede0 100%);
+  border: 1px solid #dcd3c0;
+  border-radius: 10px;
+  padding: 32px 0 0;
+  overflow: hidden;
+  box-shadow: inset 0 2px 6px rgba(44,36,22,.04);
+}
+/* 가로 스크롤 레일 컨테이너 */
+.walnut-rail-viewport {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 38px 48px 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  cursor: grab;
+  user-select: none;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-behavior: smooth;
+}
+.walnut-rail-viewport::-webkit-scrollbar {
+  display: none;
+}
+.walnut-rail-viewport.is-dragging {
+  cursor: grabbing;
+  scroll-behavior: auto;
+}
+
+/* 호두나무 원목 선반 바닥 (Walnut Wood Plank) */
+.walnut-wood-plank {
+  height: 16px;
+  background: linear-gradient(180deg, #4a3222 0%, #362214 45%, #24150b 100%);
+  border-radius: 1px;
+  box-shadow: inset 0 1.5px 1px rgba(240, 215, 185, 0.28), 0 6px 18px rgba(20, 12, 8, 0.4);
+  position: relative;
+  z-index: 5;
+}
+.walnut-wood-plank::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0; right: 0;
+  height: 8px;
+  background: linear-gradient(180deg, rgba(20, 12, 8, 0.25) 0%, transparent 100%);
+}
+
+/* 좌우 가장자리 페이드 마스크 & 컨트롤러 */
+.rail-fade-left, .rail-fade-right {
+  position: absolute;
+  top: 0; bottom: 16px;
+  width: 48px;
+  pointer-events: none;
+  z-index: 10;
+}
+.rail-fade-left {
+  left: 0;
+  background: linear-gradient(90deg, rgba(244,237,224,.95) 0%, transparent 100%);
+}
+.rail-fade-right {
+  right: 0;
+  background: linear-gradient(270deg, rgba(244,237,224,.95) 0%, transparent 100%);
+}
+
+/* 가장자리 호버 자동 스크롤 화살표 힌트 (Reading Timeline과 동일 방식) */
+.rail-edge-arrow {
+  position: absolute;
+  top: 0; bottom: 16px;
+  width: 54px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  z-index: 25;
+  opacity: 0;
+  transition: opacity .25s ease;
+  color: #4a3222;
+}
+.rail-edge-arrow.left { left: 0; padding-left: 8px; justify-content: flex-start; }
+.rail-edge-arrow.right { right: 0; padding-right: 8px; justify-content: flex-end; }
+.rail-edge-arrow.visible { opacity: 0.45; }
+.rail-edge-arrow.active { opacity: 0.95; }
+.rail-edge-arrow svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  stroke-width: 2.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 3px rgba(44,36,22,.2));
+}
+.rail-edge-arrow.left.active svg { animation: arrowPulseLeft .7s ease-in-out infinite; }
+.rail-edge-arrow.right.active svg { animation: arrowPulseRight .7s ease-in-out infinite; }
+
+/* 연도/타임마커 황동 디바이더 (Brass Year Divider) */
+.brass-year-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  height: 140px;
+  flex-shrink: 0;
+  margin: 0 8px;
+  user-select: none;
+}
+.brass-badge {
+  background: linear-gradient(135deg, #e4c278 0%, #b8860b 50%, #8b6508 100%);
+  color: #1e1308;
+  font-family: 'Playfair Display', serif;
+  font-size: .76rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  padding: 4px 8px;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.5), 0 2px 6px rgba(0,0,0,.25);
+  border: 1px solid #7a5400;
+}
+.brass-line {
+  width: 2px;
+  height: 70px;
+  background: linear-gradient(180deg, #b8860b 0%, rgba(184,134,11,.15) 100%);
+  margin-top: 6px;
+}
+
+/* 하단 가로 트랙바 & 가이드 정보 */
+.rail-footer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+  font-size: .74rem;
+  color: var(--muted);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rail-track-wrap {
+  flex: 1;
+  max-width: 220px;
+  height: 4px;
+  background: var(--cream);
+  border-radius: 999px;
+  position: relative;
+  overflow: hidden;
+  margin: 0 12px;
+}
+.rail-track-thumb {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 0; width: 20%;
+  background: linear-gradient(90deg, #b8860b, var(--teal));
+  border-radius: 999px;
+  transition: left .08s ease, width .08s ease;
+}
+
+/* 책등 (Book Spine) */
+.book-spine {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 3px 3px 1px 1px;
+  cursor: pointer;
+  user-select: none;
+  padding: 8px 3px 6px;
+  box-shadow: inset 1px 0 2px rgba(255,255,255,.25), inset -1px 0 3px rgba(0,0,0,.4), 1px 2px 5px rgba(0,0,0,.18);
+  transition: transform .24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .24s cubic-bezier(0.16, 1, 0.3, 1), filter .2s ease;
+  transform-origin: bottom center;
+  flex-shrink: 0;
+}
+.book-spine::before {
+  content: '';
+  position: absolute;
+  top: 4px; left: 2px; right: 2px;
+  height: 1px;
+  background: rgba(255,215,0,.45);
+  box-shadow: 0 2px 0 rgba(255,215,0,.35);
+}
+.book-spine::after {
+  content: '';
+  position: absolute;
+  bottom: 4px; left: 2px; right: 2px;
+  height: 1px;
+  background: rgba(255,215,0,.45);
+  box-shadow: 0 -2px 0 rgba(255,215,0,.35);
+}
+
+.book-spine:hover {
+  transform: translateY(-18px) scale(1.05);
+  z-index: 30;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.2),
+    inset 0 1px 0 rgba(255,255,255,.4),
+    0 16px 26px rgba(0,0,0,.38);
+  filter: brightness(1.1);
+}
+
+.spine-ribbon {
+  position: absolute;
+  top: -6px;
+  width: 14px;
+  height: 16px;
+  background: linear-gradient(135deg, #ffd700, #b8860b);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 75%, 0 100%);
+  box-shadow: 0 2px 4px rgba(0,0,0,.25);
+  z-index: 3;
+}
+
+.spine-title {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-family: 'Noto Serif KR', serif;
+  font-size: .68rem;
+  font-weight: 600;
+  color: rgba(255,255,255,.94);
+  letter-spacing: .03em;
+  text-shadow: 0 1px 2px rgba(0,0,0,.45);
+  max-height: 105px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: auto 0;
+  line-height: 1.1;
+}
+
+.spine-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: auto;
+}
+.spine-kdc {
+  font-size: .52rem;
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  color: rgba(255,255,255,.6);
+  letter-spacing: .04em;
+}
+.spine-rating {
+  font-size: .55rem;
+  color: #ffd700;
+  line-height: 1;
+}
+
+/* 플로팅 툴팁 (body에 붙는 fixed 요소 — 레일 overflow에 잘리지 않음) */
+#spine-float-tip {
+  position: fixed;
+  left: 0; top: 0;
+  background: linear-gradient(160deg, #2b2e33 0%, #16181b 100%);
+  border: 1px solid rgba(233, 213, 154, .35);
+  color: #fbf9f4;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: .68rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s ease;
+  z-index: 400;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 6px 18px rgba(0,0,0,.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+#spine-float-tip.show { opacity: 1; }
+.st-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: .55rem; font-weight: 700; letter-spacing: .1em;
+  color: #e9d59a; border: 1px solid rgba(233,213,154,.45);
+  border-radius: 999px; padding: 1px 7px 1px 5px;
+}
+.st-badge svg { width: 9px; height: 9px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* 전자책 책등 (스페이스 그레이 알루미늄 E-reader) */
+.book-spine.is-ebook {
+  background:
+    linear-gradient(100deg, rgba(255,255,255,.1) 0%, rgba(255,255,255,0) 28%, rgba(255,255,255,.05) 72%, rgba(255,255,255,.1) 100%),
+    linear-gradient(160deg, #3b3e43 0%, #1c1e21 55%, #2b2e32 100%);
+  border-radius: 5px;
+  padding: 3px;
+  gap: 3px;
+  justify-content: flex-start;
+  margin: 0 3px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.12),
+    inset 0 1px 0 rgba(255,255,255,.3),
+    1px 3px 7px rgba(0,0,0,.3);
+}
+.book-spine.is-ebook::before {
+  /* 화면 유리 반사광 */
+  top: 3px; left: 3px; right: 3px; bottom: auto;
+  height: 42%;
+  background: linear-gradient(155deg, rgba(255,255,255,.13) 0%, rgba(255,255,255,0) 55%);
+  box-shadow: none;
+  border-radius: 3px 3px 0 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.book-spine.is-ebook::after { display: none; }
+.book-spine.is-ebook:hover {
+  transform: translateY(-18px) scale(1.05);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.2),
+    inset 0 1px 0 rgba(255,255,255,.4),
+    0 16px 26px rgba(0,0,0,.38);
+  filter: none;
+}
+.eb-screen {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 1px 5px;
+  border-radius: 3px;
+  /* 장르색을 깊게 가라앉힌 e-ink 패널 */
+  background:
+    linear-gradient(180deg, rgba(10,12,14,.38) 0%, rgba(10,12,14,.72) 100%),
+    var(--ec);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.55), inset 0 2px 7px rgba(0,0,0,.5);
+  overflow: hidden;
+  transition: filter .24s ease;
+}
+/* 미세 e-ink 스캔라인 질감 */
+.eb-screen::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px);
+  pointer-events: none;
+}
+/* 샴페인 골드 헤어라인 (상단 장식) */
+.eb-screen::before {
+  content: '';
+  position: absolute;
+  top: 5px; left: 28%; right: 28%;
+  height: 1px;
+  background: rgba(233,213,154,.6);
+}
+.book-spine.is-ebook:hover .eb-screen { filter: brightness(1.18); }
+.book-spine.is-ebook .spine-title {
+  font-family: 'Noto Serif KR', serif;
+  color: #f3ead3;
+}
+.book-spine.is-ebook .spine-kdc { color: rgba(243,234,211,.6); }
+.eb-progress {
+  height: 2px;
+  border-radius: 1px;
+  background: rgba(255,255,255,.1);
+  overflow: hidden;
+  flex-shrink: 0;
+  margin: 0 1px 1px;
+}
+.eb-progress i { display: block; height: 100%; width: 100%; }
+.eb-progress.gold i { background: linear-gradient(90deg, #b8962e, #ecd9a0); }
+.eb-progress.teal i { background: linear-gradient(90deg, #9aa7a3, #d5dcd9); }
+.eb-progress.gray i { background: #6e7377; }
+.eb-progress.reading i {
+  width: 55%;
+  background: linear-gradient(90deg, #b8862e 0%, #f3dca4 50%, #b8862e 100%);
+  background-size: 200% 100%;
+  animation: ebReadingShimmer 1.8s linear infinite;
+}
+@keyframes ebReadingShimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: 0 0; }
+}
+
+/* 읽는 중 책: 책갈피 리본 + 살짝 뽑힌 위치 + 호박색 펄스 */
+.reading-bookmark {
+  position: absolute;
+  top: -9px;
+  right: 6px;
+  width: 9px;
+  height: 26px;
+  background: linear-gradient(180deg, #e8604a 0%, #b3301f 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.3));
+  z-index: 6;
+}
+.book-spine.is-reading:not(:hover) {
+  transform: translateY(-8px) rotate(-1.5deg);
+}
+.book-spine.is-reading.is-ebook:not(:hover) {
+  transform: translateY(-8px);
+}
+.book-spine.is-reading:not(.is-ebook):not(:hover) {
+  animation: readingPulse 2.6s ease-in-out infinite;
+}
+@keyframes readingPulse {
+  0%, 100% { box-shadow: inset 1px 0 2px rgba(255,255,255,.25), inset -1px 0 3px rgba(0,0,0,.4), 1px 2px 5px rgba(0,0,0,.18), 0 0 4px rgba(255,170,60,.25); }
+  50%      { box-shadow: inset 1px 0 2px rgba(255,255,255,.25), inset -1px 0 3px rgba(0,0,0,.4), 1px 2px 5px rgba(0,0,0,.18), 0 0 16px rgba(255,170,60,.8); }
+}
+/* 일반 종이책: 은은한 골드 펄스 (읽는 중 책보다 약하게) */
+.book-spine:not(.is-ebook):not(.is-reading):not(:hover) {
+  animation: paperGoldPulse 4.2s ease-in-out infinite;
+}
+.book-spine:not(.is-ebook):not(.is-reading):nth-child(3n+1) { animation-delay: -1.4s; }
+.book-spine:not(.is-ebook):not(.is-reading):nth-child(3n+2) { animation-delay: -2.8s; }
+@keyframes paperGoldPulse {
+  0%, 100% { box-shadow: inset 1px 0 2px rgba(255,255,255,.25), inset -1px 0 3px rgba(0,0,0,.4), 1px 2px 5px rgba(0,0,0,.18), 0 0 2px rgba(255,215,0,.08); }
+  50%      { box-shadow: inset 1px 0 2px rgba(255,255,255,.25), inset -1px 0 3px rgba(0,0,0,.4), 1px 2px 5px rgba(0,0,0,.18), 0 0 8px rgba(255,215,0,.35); }
+}
+#spine-float-tip.reading:not(.ebook) {
+  border: 1px solid rgba(255, 184, 77, .55);
+  box-shadow: 0 0 14px rgba(255, 170, 60, .35), 0 4px 14px rgba(0,0,0,.25);
+}
+.st-badges { display: flex; gap: 4px; }
+.st-badge.reading { color: #ffc66b; border-color: rgba(255,198,107,.55); }
+.st-title { font-weight: 700; color: #fff; font-size: .72rem; }
+.st-meta { font-size: .62rem; color: #bdb6a4; }
