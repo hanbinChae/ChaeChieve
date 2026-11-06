@@ -1195,7 +1195,8 @@ function renderTimeline(books) {
     const med = (b.medium === '전자책' || b.medium === '종이책') ? b.medium : '전자책';
     const col = laneColors[med];
     let x     = toX(b.ts);
-    const r   = b.rating >= 4.5 ? 7.2 : b.rating >= 3.5 ? 5.5 : 4.2;
+    // 점 크기 확대 (기존 대비 약 25~30% 확대하여 시인성 및 클릭 편의성 향상)
+    const r   = b.rating >= 4.5 ? 9.2 : b.rating >= 3.5 ? 7.2 : 5.6;
 
     let cy;
     if (med === '전자책') {
@@ -1208,13 +1209,13 @@ function renderTimeline(books) {
         const collisions = placed['전자책'].filter(p => {
           const dx = p.x - x;
           const dy = p.cy - cy;
-          return Math.sqrt(dx * dx + dy * dy) < (r + p.r + 1.8);
+          return Math.sqrt(dx * dx + dy * dy) < (r + p.r + 2.0);
         });
 
         if (!collisions.length) break;
 
         const topMost = Math.min(...collisions.map(p => p.cy));
-        cy = topMost - (r + 5.5);
+        cy = topMost - (r + 7.0);
 
         if (cy < TOP_PAD + r) {
           x += (attempts % 2 === 0 ? 1 : -1) * (r * 1.5);
@@ -1233,13 +1234,13 @@ function renderTimeline(books) {
         const collisions = placed['종이책'].filter(p => {
           const dx = p.x - x;
           const dy = p.cy - cy;
-          return Math.sqrt(dx * dx + dy * dy) < (r + p.r + 1.8);
+          return Math.sqrt(dx * dx + dy * dy) < (r + p.r + 2.0);
         });
 
         if (!collisions.length) break;
 
         const bottomMost = Math.max(...collisions.map(p => p.cy));
-        cy = bottomMost + (r + 5.5);
+        cy = bottomMost + (r + 7.0);
 
         if (cy > BOT_PAD - r) {
           x += (attempts % 2 === 0 ? 1 : -1) * (r * 1.5);
