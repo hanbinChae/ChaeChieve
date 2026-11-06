@@ -105,37 +105,172 @@
     /* ── 레이아웃 ── */
     .dash-body { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
 
-    /* ── KPI ── */
+    /* ── KPI (High-End Luxury Editorial Fixed Cards) ── */
     .kpi-row {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 0;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
+      border: 1px solid rgba(221, 213, 192, 0.9);
+      border-radius: 12px;
+      background: #faf8f3;
+      margin-bottom: 36px;
       overflow: hidden;
-      margin-bottom: 40px;
-      background: var(--card);
+      box-shadow: 0 2px 12px rgba(44, 36, 22, 0.04);
     }
     .kpi-item {
-      padding: 28px 20px 24px;
+      position: relative;
+      padding: 20px 12px 16px;
       text-align: center;
-      border-right: 1px solid var(--border);
+      border-right: 1px solid rgba(221, 213, 192, 0.7);
+      cursor: pointer;
+      background: #faf8f3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      height: 194px;
+      overflow: hidden;
+      transition: background-color .35s ease, box-shadow .35s ease;
     }
-    .kpi-item:last-child { border-right: none; }
-    .kpi-icon { font-size: 1.8rem; margin-bottom: 10px; opacity: .75; }
-    .kpi-value {
-      font-family: 'Playfair Display', serif;
-      font-size: 2.4rem;
-      font-weight: 700;
-      color: var(--teal);
-      line-height: 1;
+    .kpi-item:last-child {
+      border-right: none;
     }
-    .kpi-label { font-size: .75rem; color: var(--muted); margin-top: 6px; letter-spacing: .05em; text-transform: uppercase; }
 
-    @media (max-width: 600px) {
-      .kpi-row { grid-template-columns: repeat(2,1fr); }
+    /* 카드 배경 일러스트레이션 아트워크 */
+    .kpi-illustration {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 102px;
+      pointer-events: none;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      opacity: 0.65;
+      transition: opacity .35s ease, transform .4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .kpi-art {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* 호버 시 럭셔리 내부 전환 (레이아웃 크기/위치 변동 완전 제거) */
+    .kpi-item:hover,
+    .kpi-item:focus-within {
+      background: #ffffff;
+      box-shadow: inset 0 0 0 1px rgba(74, 124, 111, 0.18), 0 8px 24px -4px rgba(44, 36, 22, 0.06);
+    }
+    .kpi-item:hover .kpi-illustration,
+    .kpi-item:focus-within .kpi-illustration {
+      opacity: 0.28;
+      transform: translateY(-4px);
+    }
+
+    /* 메인 타이포그래피 (숫자 + 라벨) */
+    .kpi-primary {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      z-index: 2;
+      transform: translateY(18px);
+      transition: transform .38s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .kpi-item:hover .kpi-primary,
+    .kpi-item:focus-within .kpi-primary {
+      transform: translateY(0);
+    }
+
+    .kpi-value {
+      font-family: 'Playfair Display', 'Noto Serif KR', serif;
+      font-size: 2.45rem;
+      font-weight: 900;
+      color: #1a1714;
+      line-height: 1;
+      letter-spacing: -0.01em;
+    }
+    .kpi-label {
+      font-family: 'Noto Sans KR', system-ui, sans-serif;
+      font-size: .64rem;
+      color: #72685a;
+      margin-top: 5px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+
+    /* 하단 인사이트 영역 (스무스 리빌 서랍) */
+    .kpi-drawer {
+      width: 86%;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(74, 124, 111, 0.16);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .32s ease, transform .38s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      z-index: 2;
+    }
+    .kpi-item:hover .kpi-drawer,
+    .kpi-item:focus-within .kpi-drawer {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    /* 인사이트 행 레이아웃 (라벨 | 값) */
+    .insight-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      width: 100%;
+      font-size: .68rem;
+      padding: 0 2px;
+    }
+    .insight-label {
+      color: #665d50;
+      font-weight: 600;
+      font-size: .63rem;
+      white-space: nowrap;
+      min-width: 48px;
+      text-align: left;
+    }
+    .insight-divider {
+      color: rgba(74, 124, 111, 0.3);
+      margin: 0 6px;
+      font-size: .68rem;
+      font-weight: 300;
+    }
+    .insight-val {
+      color: #2c5e50;
+      font-weight: 800;
+      font-size: .68rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: left;
+      flex: 1;
+    }
+    .insight-empty {
+      font-size: .68rem;
+      color: var(--muted);
+      text-align: center;
+      width: 100%;
+      padding: 2px 0;
+    }
+
+    @media (max-width: 768px) {
+      .kpi-row { grid-template-columns: repeat(2, 1fr); }
+      .kpi-item { height: 180px; padding: 16px 8px 14px; }
       .kpi-item:nth-child(2) { border-right: none; }
-      .kpi-item:nth-child(1), .kpi-item:nth-child(2) { border-bottom: 1px solid var(--border); }
+      .kpi-item:nth-child(1), .kpi-item:nth-child(2) { border-bottom: 1px solid rgba(221, 213, 192, 0.7); }
     }
 
     /* ── 섹션 공통 ── */
@@ -941,27 +1076,129 @@
     <button class="ybtn active" data-year="all">All</button>
   </div>
 
-  <!-- KPI -->
+  <!-- KPI (Editorial Botanical & Line-Art Cards) -->
   <div class="kpi-row">
-    <div class="kpi-item">
-      <div class="kpi-icon">📚</div>
-      <div class="kpi-value" id="kpi-total">—</div>
-      <div class="kpi-label">Books Read</div>
+    <!-- 1. Books Read -->
+    <div class="kpi-item" tabindex="0" role="region" aria-label="독서량 지표 카드">
+      <div class="kpi-illustration">
+        <svg class="kpi-art" viewBox="0 0 200 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g opacity="0.38" stroke="#a3937d" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" fill="#d2c5b0" fill-opacity="0.35">
+            <path d="M12 18 C18 35 32 45 42 52" fill="none"/>
+            <path d="M18 24 C14 20 22 14 26 18 C30 22 24 28 18 24 Z"/>
+            <path d="M25 32 C20 28 29 22 34 26 C38 31 31 37 25 32 Z"/>
+            <path d="M33 42 C28 38 37 32 42 36 C46 41 39 47 33 42 Z"/>
+            <path d="M39 51 C35 48 44 42 48 46 C52 50 45 55 39 51 Z"/>
+            <path d="M24 12 C28 20 26 30 20 36" fill="none"/>
+            <path d="M22 14 C20 10 26 8 28 12 C30 16 25 18 22 14 Z"/>
+          </g>
+          <g opacity="0.65" stroke="#8c7e6b" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="#faf7f1">
+            <path d="M68 76 L130 52 L172 68 L110 92 Z"/>
+            <path d="M68 76 L68 83 C68 85 70 87 72 86 L112 101 L172 76 L172 68"/>
+            <path d="M112 101 L112 92"/>
+            <path d="M72 82 L110 97 L168 73" fill="none" stroke-width="0.8" opacity="0.7"/>
+            <path d="M72 58 L134 35 L174 50 L112 73 Z"/>
+            <path d="M72 58 L72 65 C72 67 74 69 76 68 L114 82 L174 58 L174 50"/>
+            <path d="M114 82 L114 73"/>
+            <path d="M76 64 L112 78 L170 55" fill="none" stroke-width="0.8" opacity="0.7"/>
+            <path d="M80 38 L140 16 L178 30 L118 52 Z"/>
+            <path d="M80 38 L80 45 C80 47 82 49 84 48 L120 61 L178 38 L178 30"/>
+            <path d="M120 61 L120 52"/>
+            <path d="M84 44 L118 57 L174 35" fill="none" stroke-width="0.8" opacity="0.7"/>
+            <path d="M83 40 L83 46 M87 41 L87 47 M115 54 L115 60" stroke-width="0.8" opacity="0.6"/>
+          </g>
+        </svg>
+      </div>
+      <div class="kpi-primary">
+        <div class="kpi-value" id="kpi-total">—</div>
+        <div class="kpi-label">Books Read</div>
+      </div>
+      <div class="kpi-drawer" id="kpi-back-books"></div>
     </div>
-    <div class="kpi-item">
-      <div class="kpi-icon">✍️</div>
-      <div class="kpi-value" id="kpi-authors">—</div>
-      <div class="kpi-label">Authors</div>
+
+    <!-- 2. Authors -->
+    <div class="kpi-item" tabindex="0" role="region" aria-label="작가 통계 지표 카드">
+      <div class="kpi-illustration">
+        <svg class="kpi-art" viewBox="0 0 200 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g opacity="0.38" stroke="#a3937d" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" fill="#d2c5b0" fill-opacity="0.35">
+            <path d="M22 10 C32 25 45 42 62 50" fill="none"/>
+            <path d="M28 16 C22 12 30 6 36 10 C42 14 36 21 28 16 Z"/>
+            <path d="M38 28 C32 24 40 18 46 22 C52 26 46 33 38 28 Z"/>
+            <path d="M48 38 C42 34 50 28 56 32 C62 36 56 43 48 38 Z"/>
+            <path d="M58 48 C52 44 60 38 66 42 C72 46 66 53 58 48 Z"/>
+          </g>
+          <g opacity="0.6" stroke="#8c7e6b" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="#faf7f1">
+            <path d="M84 48 L96 22 C97 20 99 19 101 20 L104 22 C106 23 106 25 105 27 L92 53 Z"/>
+            <path d="M84 48 L82 57 L88 51 Z" fill="#8c7e6b" fill-opacity="0.4"/>
+            <path d="M82 57 L81 61 L84 58 Z" fill="#4a3e31"/>
+            <path d="M103 23 L98 34" stroke-width="1.2"/>
+          </g>
+          <g opacity="0.65" stroke="#8c7e6b" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="#faf7f1">
+            <path d="M100 24 L165 36 C168 37 170 39 169 42 L152 100 C151 102 148 104 145 103 L82 89 C80 88 78 86 79 83 L96 26 C97 23 99 21 102 22 Z"/>
+            <path d="M101 42 L158 52 M98 50 L155 60 M95 58 L152 68 M92 66 L149 76 M89 74 L146 84 M86 82 L143 92" stroke-width="0.75" opacity="0.6"/>
+            <g stroke-width="1" opacity="0.8">
+              <path d="M102 20 C101 22 103 24 105 24 M108 21 C107 23 109 25 111 25 M114 22 C113 24 115 26 117 26 M120 23 C119 25 121 27 123 27 M126 24 C125 26 127 28 129 28 M132 25 C131 27 133 29 135 29 M138 26 C137 28 139 30 141 30 M144 27 C143 29 145 31 147 31 M150 28 C149 30 151 32 153 32 M156 29 C155 31 157 33 159 33 M162 30 C161 32 163 34 165 34"/>
+            </g>
+            <path d="M142 98 L152 100 L149 91 Z" fill="#e8dfd0"/>
+          </g>
+        </svg>
+      </div>
+      <div class="kpi-primary">
+        <div class="kpi-value" id="kpi-authors">—</div>
+        <div class="kpi-label">Authors</div>
+      </div>
+      <div class="kpi-drawer" id="kpi-back-authors"></div>
     </div>
-    <div class="kpi-item">
-      <div class="kpi-icon">🏷️</div>
-      <div class="kpi-value" id="kpi-genres">—</div>
-      <div class="kpi-label">Genres</div>
+
+    <!-- 3. Genres -->
+    <div class="kpi-item" tabindex="0" role="region" aria-label="장르 통계 지표 카드">
+      <div class="kpi-illustration">
+        <svg class="kpi-art" viewBox="0 0 200 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g opacity="0.65" stroke="#8c7e6b" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="#faf7f1">
+            <path d="M125 22 L145 18 C147 18 149 19 149 21 L151 25 L180 21 C182 21 185 23 184 26 L172 82 C172 85 169 87 167 86 L110 75 C107 74 106 72 106 69 L115 26 C115 24 117 22 119 23 Z" opacity="0.5"/>
+            <path d="M112 28 L130 24 C132 24 134 25 134 27 L136 31 L172 26 C175 25 177 27 177 30 L164 88 C163 91 161 93 158 92 L100 81 C97 80 95 78 96 75 L106 31 C106 29 108 27 110 28 Z" opacity="0.75"/>
+            <path d="M98 35 L118 31 C120 31 122 32 122 34 L123 38 L162 33 C165 32 167 34 167 37 L154 96 C153 99 151 101 148 100 L88 89 C85 88 83 86 84 83 L94 38 C94 36 96 34 98 35 Z"/>
+            <text x="100" y="37" font-family="'Noto Sans KR', system-ui, sans-serif" font-size="5.5" font-weight="700" fill="#7a6e5f" letter-spacing="0.5" transform="rotate(-6 100 37)">INDEX</text>
+            <path d="M96 48 L158 40 M94 56 L156 48 M92 64 L154 56 M90 72 L152 64 M88 80 L150 72 M86 88 L148 80" stroke-width="0.75" opacity="0.5"/>
+          </g>
+        </svg>
+      </div>
+      <div class="kpi-primary">
+        <div class="kpi-value" id="kpi-genres">—</div>
+        <div class="kpi-label">Genres</div>
+      </div>
+      <div class="kpi-drawer" id="kpi-back-genres"></div>
     </div>
-    <div class="kpi-item">
-      <div class="kpi-icon">⭐</div>
-      <div class="kpi-value" id="kpi-avg">—</div>
-      <div class="kpi-label">Avg Rating</div>
+
+    <!-- 4. Avg Rating -->
+    <div class="kpi-item" tabindex="0" role="region" aria-label="평점 통계 지표 카드">
+      <div class="kpi-illustration">
+        <svg class="kpi-art" viewBox="0 0 200 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g opacity="0.4" stroke="#a3937d" stroke-width="0.9" stroke-linecap="round" fill="none">
+            <path d="M82 28 L82 38 M77 33 L87 33 M78 29 L86 37 M78 37 L86 29"/>
+            <path d="M96 52 L96 58 M93 55 L99 55 M94 53 L98 57 M94 57 L98 53"/>
+            <circle cx="90" cy="42" r="1" fill="#a3937d"/>
+            <circle cx="104" cy="22" r="1.2" fill="#a3937d"/>
+            <circle cx="112" cy="46" r="0.8" fill="#a3937d"/>
+          </g>
+          <g opacity="0.55" stroke="#8c7e6b" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" fill="none">
+            <circle cx="160" cy="40" r="54" stroke-dasharray="2 3"/>
+            <circle cx="160" cy="40" r="48"/>
+            <circle cx="160" cy="40" r="44" stroke-width="0.75"/>
+            <circle cx="160" cy="40" r="34"/>
+            <circle cx="160" cy="40" r="24" stroke-dasharray="3 2"/>
+            <circle cx="160" cy="40" r="14" fill="#faf7f1"/>
+            <circle cx="160" cy="40" r="8" fill="#d2c5b0" fill-opacity="0.3"/>
+            <path d="M160 22 L160 14 M160 58 L160 66 M142 40 L134 40 M178 40 L186 40 M147 27 L141 21 M173 53 L179 59 M147 53 L141 59 M173 27 L179 21" stroke-width="1.1"/>
+            <path d="M126 40 L194 40 M160 6 L160 74 M136 16 L184 64 M136 64 L184 16" stroke-width="0.7" opacity="0.6"/>
+            <circle cx="160" cy="40" r="46" stroke-width="4" stroke-dasharray="1 7" opacity="0.7"/>
+          </g>
+        </svg>
+      </div>
+      <div class="kpi-primary">
+        <div class="kpi-value" id="kpi-avg">—</div>
+        <div class="kpi-label">Avg Rating</div>
+      </div>
+      <div class="kpi-drawer" id="kpi-back-rating"></div>
     </div>
   </div>
 
@@ -1335,14 +1572,167 @@ function renderRankingSections() {
   renderTopBooks(books);
 }
 
-// ── KPI ───────────────────────────────────────────────────────────────────────
+// ── KPI (앞면 통계 및 뒷면 인사이트 렌더링) ──────────────────────────────────
 function renderKPI(books) {
-  const ratings = books.map(b=>b.rating).filter(r=>r>0);
-  const avg = ratings.length ? ratings.reduce((a,b)=>a+b,0)/ratings.length : 0;
-  document.getElementById('kpi-total').textContent   = books.length;
-  document.getElementById('kpi-authors').textContent = new Set(books.map(b=>b.author).filter(Boolean)).size;
-  document.getElementById('kpi-genres').textContent  = new Set(books.map(b=>b.major).filter(Boolean)).size;
-  document.getElementById('kpi-avg').textContent     = avg ? avg.toFixed(2) : '—';
+  const totalCount = books.length;
+  const ratings = books.map(b => b.rating).filter(r => r > 0);
+  const avg = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+  const uniqueAuthors = new Set(books.map(b => b.author).filter(Boolean)).size;
+  const uniqueGenres = new Set(books.map(b => b.major).filter(Boolean)).size;
+
+  // 앞면 기본 지표
+  const elTotal = document.getElementById('kpi-total');
+  const elAuthors = document.getElementById('kpi-authors');
+  const elGenres = document.getElementById('kpi-genres');
+  const elAvg = document.getElementById('kpi-avg');
+
+  if (elTotal) elTotal.textContent = totalCount || '0';
+  if (elAuthors) elAuthors.textContent = uniqueAuthors || '0';
+  if (elGenres) elGenres.textContent = uniqueGenres || '0';
+  if (elAvg) elAvg.textContent = avg ? avg.toFixed(2) : '—';
+
+  // ── [1. BOOKS READ 인사이트] ──
+  const backBooks = document.getElementById('kpi-back-books');
+  if (backBooks) {
+    if (!totalCount) {
+      backBooks.innerHTML = `<div class="insight-empty">데이터 없음</div>`;
+    } else {
+      // 최고의 달 (월별 카운트)
+      const monthCount = {};
+      books.forEach(b => {
+        if (!b.date) return;
+        const m = b.date.match(/\D+(\d{1,2})\D+/);
+        if (m) {
+          const monthKey = `${parseInt(m[1], 10)}월`;
+          monthCount[monthKey] = (monthCount[monthKey] || 0) + 1;
+        }
+      });
+      const topMonthEntry = Object.entries(monthCount).sort((a, b) => b[1] - a[1])[0];
+      const bestMonthText = topMonthEntry ? `${topMonthEntry[0]} (${topMonthEntry[1]}권)` : '—';
+
+      // 매체 선호도
+      const paperCount = books.filter(b => b.medium === '종이책').length;
+      const ebookCount = books.filter(b => b.medium === '전자책').length;
+      const mediumText = `종이 ${paperCount} · 전자 ${ebookCount}`;
+
+      backBooks.innerHTML = `
+        <div class="insight-row">
+          <span class="insight-label">최대 독서</span>
+          <span class="insight-divider">|</span>
+          <span class="insight-val">${bestMonthText}</span>
+        </div>
+        <div class="insight-row">
+          <span class="insight-label">매체 분포</span>
+          <span class="insight-divider">|</span>
+          <span class="insight-val">${mediumText}</span>
+        </div>
+      `;
+    }
+  }
+
+  // ── [2. AUTHORS 인사이트] ──
+  const backAuthors = document.getElementById('kpi-back-authors');
+  if (backAuthors) {
+    if (!totalCount) {
+      backAuthors.innerHTML = `<div class="insight-empty">데이터 없음</div>`;
+    } else {
+      const authorCounts = {};
+      books.forEach(b => {
+        const a = (b.author || '').trim();
+        if (a) authorCounts[a] = (authorCounts[a] || 0) + 1;
+      });
+
+      const authorEntries = Object.entries(authorCounts).sort((a, b) => b[1] - a[1]);
+      const topAuthor = authorEntries[0];
+      const topAuthorText = topAuthor ? `${topAuthor[0]} (${topAuthor[1]}권)` : '—';
+      const loyalCount = authorEntries.filter(e => e[1] >= 2).length;
+
+      backAuthors.innerHTML = `
+        <div class="insight-row">
+          <span class="insight-label">최다 등장</span>
+          <span class="insight-divider">|</span>
+          <span class="insight-val" title="${topAuthor ? topAuthor[0] : ''}">${topAuthorText}</span>
+        </div>
+        <div class="insight-row">
+          <span class="insight-label">다독 작가군</span>
+          <span class="insight-divider">|</span>
+          <span class="insight-val">${loyalCount}명 (${Math.round((loyalCount / (authorEntries.length || 1)) * 100)}%)</span>
+        </div>
+      `;
+    }
+  }
+
+  // ── [3. GENRES 인사이트] ──
+  const backGenres = document.getElementById('kpi-back-genres');
+  if (backGenres) {
+    if (!totalCount) {
+      backGenres.innerHTML = `<div class="insight-empty">데이터 없음</div>`;
+    } else {
+      const genreCounts = {};
+      books.forEach(b => {
+        const g = (b.major || '').trim();
+        if (g) genreCounts[g] = (genreCounts[g] || 0) + 1;
+      });
+
+      const genreEntries = Object.entries(genreCounts).sort((a, b) => b[1] - a[1]);
+      const g1 = genreEntries[0];
+      const g2 = genreEntries[1];
+
+      const g1Text = g1 ? `${g1[0]} (${Math.round((g1[1] / totalCount) * 100)}%)` : '—';
+      const g2Text = g2 ? `${g2[0]} (${Math.round((g2[1] / totalCount) * 100)}%)` : '—';
+
+      backGenres.innerHTML = `
+        <div class="insight-row">
+          <span class="insight-label">1위 장르</span>
+          <span class="insight-divider">|</span>
+          <span class="insight-val">${g1Text}</span>
+        </div>
+        <div class="insight-row">
+          <span class="insight-label">2위 장르</span>
+          <span class="insight-divider">|</span>
+          <span class="insight-val">${g2Text}</span>
+        </div>
+      `;
+    }
+  }
+
+  // ── [4. AVG RATING 인사이트] ──
+  const backRating = document.getElementById('kpi-back-rating');
+  if (backRating) {
+    if (!totalCount) {
+      backRating.innerHTML = `<div class="insight-empty">데이터 없음</div>`;
+    } else {
+      const perfectBooks = books.filter(b => b.rating === 5);
+      const perfectCount = perfectBooks.length;
+
+      // date 기준 가장 최근 5점 도서 추출
+      let latest5StarTitle = '—';
+      if (perfectBooks.length) {
+        const sorted5 = [...perfectBooks].sort((a, b) => {
+          const parseDate = d => {
+            if (!d) return 0;
+            const pts = d.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+            return pts ? new Date(+pts[1], +pts[2] - 1, +pts[3]).getTime() : 0;
+          };
+          return parseDate(b.date) - parseDate(a.date);
+        });
+        latest5StarTitle = sorted5[0]?.title || '—';
+      }
+
+      backRating.innerHTML = `
+        <div class="insight-row">
+          <span class="insight-label">명예의 전당</span>
+          <span class="insight-divider">|</span>
+          <span class="insight-val">${perfectCount}권 (${Math.round((perfectCount / (totalCount || 1)) * 100)}%)</span>
+        </div>
+        <div class="insight-row">
+          <span class="insight-label">최근 만점작</span>
+          <span class="insight-divider">|</span>
+          <span class="insight-val" title="${latest5StarTitle}">『${latest5StarTitle}』</span>
+        </div>
+      `;
+    }
+  }
 }
 
 // ── 타임라인 (SVG) ────────────────────────────────────────────────────────────
