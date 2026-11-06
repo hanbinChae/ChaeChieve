@@ -262,7 +262,13 @@
       grid-template-columns: 1fr 1fr;
       align-items: center;
       min-height: 32px;
-      cursor: default;
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 6px;
+      transition: background-color .2s ease;
+    }
+    .dv-item:hover {
+      background: rgba(44, 36, 22, .035);
     }
 
     /* ── 왼쪽 셀 ── */
@@ -296,10 +302,39 @@
       color: var(--text);
       flex: 1 1 0;
       min-width: 0;
-      transition: font-weight .1s;
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color .2s ease, background-color .2s ease, transform .2s ease, font-weight .15s ease;
     }
     .dv-left  .dv-title { text-align: right; }
     .dv-right .dv-title { text-align: left; }
+
+    /* 호버 시 제목 스타일 (Best: Teal, Worst: Orange) */
+    .dv-item:hover .dv-left .dv-title {
+      color: var(--teal);
+      font-weight: 600;
+    }
+    .dv-item:hover .dv-right .dv-title {
+      color: var(--orange);
+      font-weight: 600;
+    }
+
+    /* 제목 요소에 직접 호버했을 때 더욱 부각되는 인터랙션 */
+    .dv-left .dv-title:hover {
+      background: rgba(74, 124, 111, .1);
+      transform: translateX(-3px);
+      text-decoration: underline;
+      text-decoration-color: var(--teal2);
+      text-underline-offset: 3px;
+    }
+    .dv-right .dv-title:hover {
+      background: rgba(200, 105, 58, .1);
+      transform: translateX(3px);
+      text-decoration: underline;
+      text-decoration-color: rgba(200, 105, 58, .6);
+      text-underline-offset: 3px;
+    }
 
     /* 선택(고정)된 행 */
     .dv-item.locked .dv-title {
@@ -308,10 +343,11 @@
       text-decoration-color: var(--gold);
       text-underline-offset: 3px;
       text-decoration-thickness: 2px;
+      color: var(--text);
     }
     .dv-item.locked {
-      background: rgba(184,150,46,.05);
-      border-radius: 4px;
+      background: rgba(184,150,46,.08);
+      border-radius: 6px;
     }
 
     /* 편차값 */
@@ -320,9 +356,14 @@
       font-weight: 700;
       white-space: nowrap;
       flex-shrink: 0;
+      transition: transform .2s ease;
     }
     .dv-val.pos { color: var(--teal); }
     .dv-val.neg { color: var(--orange); }
+
+    .dv-item:hover .dv-val {
+      transform: scale(1.08);
+    }
 
     /* 막대 */
     .dv-bar {
@@ -331,9 +372,21 @@
       flex-shrink: 0;
       width: var(--dv-w);
       animation: dvBarGrow .5s ease-out both;
+      transition: transform .2s ease, filter .2s ease, box-shadow .2s ease;
     }
     .dv-bar.pos { background: var(--teal); }
     .dv-bar.neg { background: var(--orange); }
+
+    .dv-item:hover .dv-bar {
+      transform: scaleY(1.2);
+      filter: brightness(1.08);
+    }
+    .dv-item:hover .dv-bar.pos {
+      box-shadow: 0 0 6px rgba(74, 124, 111, .3);
+    }
+    .dv-item:hover .dv-bar.neg {
+      box-shadow: 0 0 6px rgba(200, 105, 58, .3);
+    }
 
     /* 부정 행: 막대가 오른쪽(축)에서 왼쪽으로 뻗도록 row-reverse */
     .dv-left.neg-cell {
