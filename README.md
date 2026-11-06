@@ -42,7 +42,8 @@ reading-dashboard/
 │   │   ├── charts.css               # 타임라인, 차트 카드, Diverging, Inspector
 │   │   ├── table.css                # 도서 목록 표, Top Books, 뷰 토글
 │   │   ├── bookshelf.css            # 호두나무 북 레일(서재)
-│   │   └── modal.css                # 도서관 대출증 / 메모 모달
+│   │   ├── modal.css                # 도서관 대출증 / 메모 모달
+│   │   └── onThisDay.css            # 이날의 책 (일력 / 연도 스크러버)
 │   ├── data/
 │   │   ├── dataFetcher.js           # data.json 로드, 상태 배지
 │   │   └── statsCalculator.js       # 완독/필터 헬퍼, KPI 기본 지표 계산
@@ -56,6 +57,7 @@ reading-dashboard/
 │       ├── ratingCompare.js         # 랭킹 연도 피커 + My Best & Worst
 │       ├── topBooks.js              # Top 10 리스트
 │       ├── bookshelf.js             # 서재(북 레일) 뷰
+│       ├── onThisDay.js             # 최근 완독(기본) ↔ 이날의 책(같은 월/일 과거 완독서) 토글 카드
 │       ├── bookTable.js             # 표 / 페이지네이션 / 필터 / 뷰 전환
 │       ├── modals.js                # 대출증 / 메모 모달
 │       └── auroraHeader.js          # 헤더 Aurora WebGL 배경
@@ -100,6 +102,7 @@ reading-dashboard/
 
 | 섹션 | 타입 |
 |---|---|
+| Latest Read / On This Day | 일력 카드 (최근 완독 ↔ 이날의 책 토글) + 연도 스크러버 |
 | Reading Timeline | SVG 커스텀 |
 | How Books Consumed | Canvas 선버스트 (드릴다운) |
 | Reading Spectrum | 레이더 차트 |

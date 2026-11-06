@@ -13,6 +13,7 @@ import { getCompleted } from './data/statsCalculator.js';
 import { state } from './state.js';
 import { debounce } from './utils.js';
 import { initAurora } from './components/auroraHeader.js';
+import { renderOnThisDay } from './components/onThisDay.js';
 
 // ── 데이터 로드 (data.json — GitHub Actions 자동 갱신) ───────────────────────
 async function loadData() {
@@ -28,6 +29,7 @@ async function loadData() {
     bindTimelineToggle();
     updateTimelineLegend();
     buildYearFilters(); renderAll();
+    renderOnThisDay(); // 연도 필터와 무관 — 최초 로드 시 1회만 렌더
   } catch(e) {
     setStatus('error', '로드 실패: ' + e.message);
     document.getElementById('loading-overlay').style.display = 'none';
